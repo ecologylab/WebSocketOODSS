@@ -12,5 +12,6 @@
 			<attribute name="maven.scope" value="compile"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="/ecologylabFundamental"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
