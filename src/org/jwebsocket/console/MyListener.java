@@ -17,9 +17,25 @@ package org.jwebsocket.console;
 import org.apache.log4j.Logger;
 import org.jwebsocket.api.WebSocketPacket;
 import org.jwebsocket.api.WebSocketServerListener;
-import org.jwebsocket.config.JWebSocketServerConstants;
 import org.jwebsocket.kit.WebSocketServerEvent;
 import org.jwebsocket.logging.Logging;
+
+
+
+
+///////////////////Comment out this from JWebSocketServer.java and replace it with....
+/*
+// get the token server
+TokenServer lTS0 = (TokenServer) JWebSocketFactory.getServer("ts0");
+if (lTS0 != null) {
+	// and add the sample listener to the server's listener chain
+	lTS0.addListener(new JWebSocketTokenListenerSample());
+}
+*//////////////////this down here.
+//TokenServer lTS0 = (TokenServer) JWebSocketFactory.getServer("ts0");
+//if (lTS0 != null) {
+//	lTS0.addListener(new MyListener());
+//}
 
 /**
  * This shows an example of a simple WebSocket listener
