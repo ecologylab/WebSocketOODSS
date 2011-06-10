@@ -23,12 +23,16 @@ import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.distributed.impl.AbstractAIOServer;
-import ecologylab.oodss.distributed.impl.NIOServerIOThread;
+import ecologylab.oodss.distributed.impl.AIOServerIOThread;
 import ecologylab.oodss.distributed.server.clientsessionmanager.BaseSessionManager;
 import ecologylab.oodss.distributed.server.clientsessionmanager.ClientSessionManager;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.distributed.server.clientsessionmanager.TCPClientSessionManager;
 import ecologylab.oodss.exceptions.BadClientException;
+import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
+import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
+import ecologylab.oodss.server.clientsessionmanager.NewSessionHandle;
+import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
 /**
@@ -77,12 +81,12 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	/**
 	 * Map in which keys are sessionTokens, and values are associated ClientSessionManagers.
 	 */
-	private HashMapArrayList<Object, TCPClientSessionManager>	clientSessionManagerMap	= new HashMapArrayList<Object, TCPClientSessionManager>();
+	private HashMapArrayList<Object, NewTCPClientSessionManager>	clientSessionManagerMap	= new HashMapArrayList<Object, NewTCPClientSessionManager>();
 
 	/**
 	 * Map in which keys are sessionTokens, and values are associated SessionHandles
 	 */
-	private HashMapArrayList<Object, SessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, SessionHandle>();
+	private HashMapArrayList<Object, NewSessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, NewSessionHandle>();
 
 	private static final Charset																		ENCODED_CHARSET					= Charset
 																																															.forName(CHARACTER_ENCODING);
@@ -167,14 +171,14 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				applicationObjectScope, DEFAULT_IDLE_TIMEOUT, DEFAULT_MAX_MESSAGE_LENGTH_CHARS);
 	}
 
-	public void processRead(Object sessionToken, NIOServerIOThread base, SelectionKey sk,
+	public void processRead(Object sessionToken, AIOServerIOThread base, SelectionKey sk,
 			ByteBuffer bs, int bytesRead) throws BadClientException
 	{
 		if (bytesRead > 0)
 		{
 			synchronized (clientSessionManagerMap)
 			{
-				TCPClientSessionManager cm = clientSessionManagerMap.get(sessionToken);
+				NewClientSessionManager cm = (NewClientSessionManager) clientSessionManagerMap.get(sessionToken);
 
 				if (cm == null)
 				{
@@ -219,16 +223,16 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 * @return
 	 */
 	@Override
-	protected TCPClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
+	protected NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScopeIn, Scope registryIn)
 	{
-		return new ClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, sk,
+		return new NewClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, sk,
 				translationScopeIn, registryIn);
 	}
 
 	public void run()
 	{
-		Iterator<TCPClientSessionManager> contextIter;
+		Iterator<NewTCPClientSessionManager> contextIter;
 
 		while (running)
 		{
@@ -239,7 +243,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				// process all of the messages in the queues
 				while (contextIter.hasNext())
 				{
-					TCPClientSessionManager cm = contextIter.next();
+					NewTCPClientSessionManager cm = contextIter.next();
 
 					try
 					{
@@ -322,12 +326,12 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	}
 
 	/**
-	 * @see ecologylab.oodss.distributed.server.NIOServerProcessor#invalidate(java.lang.Object,
-	 *      ecologylab.oodss.distributed.impl.NIOServerIOThread, java.nio.channels.SocketChannel)
+	 * @see ecologylab.oodss.distributed.server.AIOServerProcessor#invalidate(java.lang.Object,
+	 *      ecologylab.oodss.distributed.impl.AIOServerIOThread, java.nio.channels.SocketChannel)
 	 */
 	public boolean invalidate(String sessionId, boolean forcePermanent)
 	{
-		BaseSessionManager cm = clientSessionManagerMap.get(sessionId);
+		NewTCPClientSessionManager cm = clientSessionManagerMap.get(sessionId);
 
 		// figure out if the disconnect is permanent; will be permanent if forcing
 		// (usually bad client), if there is no context manager (client never sent
@@ -372,11 +376,11 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 */
 	@Override
 	public boolean restoreContextManagerFromSessionId(String oldSessionId,
-			BaseSessionManager newContextManager)
+			NewBaseSessionManager newContextManager)
 	{
 		debug("attempting to restore old session...");
 
-		TCPClientSessionManager oldContextManager;
+		NewTCPClientSessionManager oldContextManager;
 
 		synchronized (clientSessionManagerMap)
 		{

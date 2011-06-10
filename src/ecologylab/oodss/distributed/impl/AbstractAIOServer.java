@@ -11,9 +11,10 @@ import java.nio.channels.SelectionKey;
 import ecologylab.collections.Scope;
 import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
-import ecologylab.oodss.distributed.server.NIOServerDataReader;
+import ecologylab.oodss.distributed.server.AIOServerDataReader;
 import ecologylab.oodss.distributed.server.clientsessionmanager.BaseSessionManager;
 import ecologylab.oodss.messages.InitConnectionRequest;
+import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
 /**
@@ -23,9 +24,9 @@ import ecologylab.serialization.TranslationScope;
  * @author Zachary O. Toups (zach@ecologylab.net)
  */
 public abstract class AbstractAIOServer<S extends Scope> extends Manager implements
-		NIOServerDataReader, Runnable, SessionObjects
+		AIOServerDataReader, Runnable, SessionObjects
 {
-	private NIOServerIOThread		backend;
+	private AIOServerIOThread		backend;
 
 	protected TranslationScope	translationScope;
 
@@ -48,7 +49,6 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
-		System.out.println("It just me.  Creating a backend.    :)");
 		backend = this.generateBackend(portNumber, inetAddress, composeTranslations(portNumber,
 				inetAddress[0], requestTranslationSpace), objectRegistry, idleConnectionTimeout,
 				maxMessageLength);
@@ -102,15 +102,15 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
 	}
 
-	protected NIOServerIOThread generateBackend(int portNumber, InetAddress[] inetAddresses,
+	protected AIOServerIOThread generateBackend(int portNumber, InetAddress[] inetAddresses,
 			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws BindException, IOException
 	{
-		return NIOServerIOThread.getInstance(portNumber, inetAddresses, this, requestTranslationSpace,
+		return AIOServerIOThread.getInstance(portNumber, inetAddresses, this, requestTranslationSpace,
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
 	}
 
-	protected abstract BaseSessionManager generateContextManager(String sessionId, SelectionKey sk,
+	protected abstract NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScope, Scope globalScope);
 
 	/**
@@ -141,7 +141,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	/**
 	 * @return the backend
 	 */
-	public NIOServerIOThread getBackend()
+	public AIOServerIOThread getBackend()
 	{
 		return backend;
 	}
