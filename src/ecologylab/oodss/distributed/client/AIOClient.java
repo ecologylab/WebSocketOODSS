@@ -3,6 +3,7 @@
  */
 package ecologylab.oodss.distributed.client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetSocketAddress;
@@ -26,6 +27,13 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
+import org.jwebsocket.api.WebSocketClientEvent;
+import org.jwebsocket.api.WebSocketClientTokenListener;
+import org.jwebsocket.api.WebSocketPacket;
+import org.jwebsocket.client.token.BaseTokenClient;
+import org.jwebsocket.kit.WebSocketException;
+import org.jwebsocket.token.Token;
+
 import ecologylab.collections.Scope;
 import ecologylab.generic.Generic;
 import ecologylab.generic.StringBuilderPool;
@@ -33,6 +41,7 @@ import ecologylab.generic.StringTools;
 import ecologylab.oodss.distributed.common.ClientConstants;
 import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
+import ecologylab.oodss.distributed.impl.AIONetworking;
 import ecologylab.oodss.distributed.impl.MessageWithMetadata;
 import ecologylab.oodss.distributed.impl.MessageWithMetadataPool;
 import ecologylab.oodss.distributed.impl.NIONetworking;
@@ -42,6 +51,7 @@ import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.DisconnectRequest;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.messages.InitConnectionResponse;
+import ecologylab.oodss.messages.PingRequest;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.SendableRequest;
@@ -49,6 +59,7 @@ import ecologylab.oodss.messages.ServiceMessage;
 import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.ElementState.FORMAT;
 
 /**
  * Services Client using NIO; a major difference with the NIO version is state tracking. Since the
@@ -65,8 +76,8 @@ import ecologylab.serialization.TranslationScope;
  * 
  * @author Zachary O. Dugas Toups (zach@ecologylab.net)
  */
-public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runnable,
-		ClientConstants
+public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runnable,
+		ClientConstants, WebSocketClientTokenListener
 {
 	protected String																									serverAddress;
 
@@ -108,6 +119,10 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 
 	private final Queue<MessageWithMetadata<ServiceMessage, Object>>	blockingResponsesQueue				= new LinkedBlockingQueue<MessageWithMetadata<ServiceMessage, Object>>();
 
+
+	private final Queue<ResponseMessage>	newBlockingResponsesQueue				= new LinkedBlockingQueue<ResponseMessage>();
+
+	
 	protected final Queue<PreppedRequest>															requestsQueue									= new LinkedBlockingQueue<PreppedRequest>();
 
 	/**
@@ -210,7 +225,9 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
 			S objectRegistry, int maxMessageLengthChars) throws IOException
 	{
-		super("NIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
+		super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
+
+		//I know the above and much below is unnecessary glut.
 
 		this.maxMessageLengthChars = maxMessageLengthChars;
 
@@ -230,6 +247,7 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 		this.compressedMessageBuffer = ByteBuffer.allocate(maxMessageLengthChars);
 
 		this.serverAddress = serverAddress;
+		initializeWebSocketClient();//this is called before start()
 	}
 
 	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
@@ -429,16 +447,16 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 	protected void handleDisconnectingMessages()
 	{
 		debug("************** sending disconnect request");
-		try
-		{
+	//	try
+	//	{
 			this.sendMessage(DisconnectRequest.REUSABLE_INSTANCE, 10000);
-		}
-		catch (MessageTooLargeException e)
+	//	}
+		/*catch (MessageTooLargeException e)
 		{
 			// this shouldn't be able to happen, unless the maximum request size
 			// gets set below the size of a DisconnectRequest
 			e.printStackTrace();
-		}
+		}*/
 	}
 
 	/**
@@ -587,8 +605,29 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 	 * @throws MessageTooLargeException
 	 */
 	public synchronized ResponseMessage sendMessage(SendableRequest request, int timeOutMillis)
-			throws MessageTooLargeException
+			//throws MessageTooLargeException
 	{
+		
+		PingRequest p = new PingRequest();
+		RequestMessage requestMessage = (RequestMessage) request;
+		
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		try {
+			requestMessage.serialize(outStream, FORMAT.JSON);
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String pJSON = new String(outStream.toByteArray());
+		System.out.println("pJSON:"+pJSON);
+		try {
+			webSocketClient.sendText("5",pJSON);
+		} catch (WebSocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		/*
 		MessageWithMetadata<ServiceMessage, Object> responseMessage = null;
 
 		// notify the connection thread that we are waiting on a response
@@ -692,6 +731,92 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 		}
 
 		return null;
+		*/
+		
+		// notify the connection thread that we are waiting on a response
+		blockingRequestPending = true;
+
+		long currentMessageUid;
+
+		boolean blockingRequestFailed = false;
+		long startTime = System.currentTimeMillis();
+		int timeCounter = 0;
+
+		// wait to be notified that the response has arrived
+		while (blockingRequestPending && !blockingRequestFailed)
+		{
+			if (timeOutMillis <= -1)
+			{
+				debug("HEY....   waiting on blocking request");
+			}
+
+			try
+			{
+				if (timeOutMillis > -1)
+				{
+					wait(timeOutMillis);
+				}
+				else
+				{
+					wait();
+				}
+			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+				Thread.interrupted();
+			}
+
+			debug("waking UP TO GET THE MESSAGE");
+
+			timeCounter += System.currentTimeMillis() - startTime;
+			startTime = System.currentTimeMillis();
+
+			ResponseMessage responseMessage = null;
+			while ((blockingRequestPending) && (!newBlockingResponsesQueue.isEmpty()))
+			{
+				responseMessage = newBlockingResponsesQueue.poll();
+
+			//	if (responseMessage.getUid() == currentMessageUid)
+				//{
+					debug("I think got the right response: "); //+ currentMessageUid);
+
+					blockingRequestPending = false;
+
+					blockingResponsesQueue.clear();
+
+					//ResponseMessage respMsg = (ResponseMessage) responseMessage.getMessage();
+
+					// try
+					// {
+					// debug("response: " + respMsg.serialize().toString());
+					// }
+					// catch (SIMPLTranslationException e)
+					// {
+					// e.printStackTrace();
+					// }
+
+					//responseMessage = responsePool.release(responseMessage);
+
+					return responseMessage;//respMsg;
+				//}
+
+			//	responseMessage = responsePool.release(responseMessage);
+			}
+
+			if ((timeOutMillis > -1) && (timeCounter >= timeOutMillis) && (blockingRequestPending))
+			{
+				blockingRequestFailed = true;
+			}
+		}
+
+		if (blockingRequestFailed)
+		{
+			debug("Request failed due to timeout!");
+		}
+
+		return null;
+		
 	}
 
 	@Override
@@ -1038,6 +1163,72 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 		return response;
 	}
 
+
+	
+	
+	/**
+	 * Converts incomingMessage to a ResponseMessage, then processes the response and removes its UID
+	 * from the unfulfilledRequests map.
+	 * 
+	 * @param incomingMessage
+	 * @return
+	 */
+	//modified to use json
+	private ServiceMessage processString(String incomingMessage)
+	{
+
+		if (show(5))
+			debug("incoming message: " + incomingMessage);
+
+		ServiceMessage actualRespose = null;
+		try
+		{
+			actualRespose = translateJSONStringToServiceMessage(incomingMessage);
+		}
+		catch (SIMPLTranslationException e)
+		{
+			e.printStackTrace();
+		}
+
+		if (response == null)
+		{
+			debug("ERROR: translation failed: ");
+		}
+		else
+		{
+			if (actualRespose instanceof ResponseMessage)
+			{
+				// perform the service being requested
+				processResponse((ResponseMessage) actualRespose);
+                    ////really hope this does not break something
+				
+				/*
+				synchronized (unfulfilledRequests)
+				{
+					PreppedRequest finishedReq = unfulfilledRequests.remove(response.getUid());
+
+					if (finishedReq != null)
+					{ // subclasses might choose not to use unfulfilledRequests; this
+						// avoids problems with releasing resources;
+						// NOTE -- it may be necessary to release elsewhere in this case.
+						finishedReq = this.pRequestPool.release(finishedReq);
+					}
+				}*/
+			}
+			else if (actualRespose instanceof UpdateMessage)
+			{
+				//this will fail at the moment
+				processUpdate((UpdateMessage) response.getMessage());
+			}
+		}
+
+		return null;
+		//return response;
+	}
+
+	
+	
+	
 	public void disconnect()
 	{
 		disconnect(true);
@@ -1351,6 +1542,34 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 		return uidIndex++;
 	}
 
+
+	/**
+	 * Use the ServicesClient and its NameSpace to do the translation. Can be overridden to provide
+	 * special functionalities
+	 * 
+	 * @param messageString
+	 * @return
+	 * @throws XMLTranslationException
+	 */
+	protected ServiceMessage translateJSONStringToServiceMessage(
+			String messageString) throws SIMPLTranslationException
+	{
+		ServiceMessage resp = (ServiceMessage) this.translationScope
+				.deserializeCharSequence(messageString);
+
+		if (resp == null)
+		{
+			return null;
+		}
+
+		//MessageWithMetadata<ServiceMessage, Object> retVal = this.responsePool.acquire();
+
+		//retVal.setMessage(resp);
+	//	retVal.setUid(incomingUid);
+
+		return resp;
+	}
+	
 	/**
 	 * Use the ServicesClient and its NameSpace to do the translation. Can be overridden to provide
 	 * special functionalities
@@ -1538,7 +1757,55 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 			}
 		}
 	}
+	///////////****...//////
+	//I'm trying to keep changes to the client down here... but they will undoubtably sprawl at some point
+	//BaseTokenClient client;
+	
+	BaseTokenClient webSocketClient;
+	
+	private void initializeWebSocketClient()
+	{
+		webSocketClient = new BaseTokenClient();
+		webSocketClient.addListener(this);	
+		
+			try {
+				webSocketClient.open("ws://localhost:8787/;unid=admin_ui_1");
+				System.out.println("Client now connected...");
+			} catch (WebSocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
+			try {
+				Thread.sleep(2000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			/*
+			try {
+				
+				PingRequest p = new PingRequest();
+				
+				ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+				try {
+					p.serialize(outStream, FORMAT.JSON);
+				} catch (SIMPLTranslationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				String pJSON = new String(outStream.toByteArray());
+				System.out.println("pJSON:"+pJSON);
+				webSocketClient.sendText("5",pJSON);
+				//client.sendText("5", new String("{\"ns\":\"org.jWebSocket.plugins.system\",\"utid\":25,\"data\":\"LALAlaaaalaLAAL\",\"targetId\":\"*\",\"type\":\"send\",\"sourceId\":\"51262\"}"));
+			} catch (WebSocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			*/
+	}
+	
 	/**
 	 * @see ecologylab.oodss.distributed.impl.NIOCore#acceptReady(java.nio.channels.SelectionKey)
 	 */
@@ -1670,5 +1937,63 @@ public class AIOClient<S extends Scope> extends NIONetworking<S> implements Runn
 		}
 
 		return this.clientStatusListeners;
+	}
+	
+	
+	@Override
+	public void processOpened(WebSocketClientEvent aEvent) {
+		// TODO Auto-generated method stub
+		System.out.println("TestWebSocketClient:");
+		
+	}
+
+	@Override//can i add synchronized here?...
+	public void processPacket(WebSocketClientEvent aEvent,
+			WebSocketPacket aPacket) {
+		// TODO Auto-generated method stub
+		System.out.println("TestWebSocketClient:processPacket+"+aPacket.getUTF8());
+		String responseJSON = aPacket.getUTF8();
+		//turn it from json to response object...  WIN
+		//put in newBlockingResponsesQueue
+		
+		if (!this.blockingRequestPending)
+		{
+			// we process the read data into a response message, let it
+			// perform its response, then dispose of
+			// the
+			// resulting MessageWithMetadata object
+			//this.responsePool.release(processString(firstMessageBuffer.toString(),
+				//	uidOfCurrentMessage));
+			processString(responseJSON);//not really using uid... hmmm...
+					
+					//tbd lookup responsePool
+		}
+		else
+		{
+			newBlockingResponsesQueue.add((ResponseMessage)processString(responseJSON));
+			synchronized (this)
+			{
+				notify();
+			}
+		}
+		
+		//this.notify();
+		//TODO take care of update messages... also POOP.
+		
+		
+	}
+
+	@Override
+	public void processClosed(WebSocketClientEvent aEvent) {
+		// TODO Auto-generated method stub
+		System.out.println("TestWebSocketClient:processClosed");
+		
+	}
+
+	@Override
+	public void processToken(WebSocketClientEvent aEvent, Token aToken) {
+		// TODO Auto-generated method stub
+		System.out.println("TestWebSocketClient:processToken");
+		////aToken.
 	}
 }
