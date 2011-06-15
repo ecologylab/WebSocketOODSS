@@ -6,7 +6,7 @@ package ecologylab.standalone;
 import java.io.IOException;
 
 import ecologylab.collections.Scope;
-import ecologylab.oodss.distributed.client.NIOClient;
+import ecologylab.oodss.distributed.client.AIOClient;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.Ping;
@@ -25,7 +25,7 @@ public class TestClient
 	 */
 	public static void main(String[] args) throws IOException, MessageTooLargeException
 	{
-		NIOClient c = new NIOClient("localhost", 7833,
+		AIOClient c = new AIOClient("localhost", 7833,
 				DefaultServicesTranslations.get(), new Scope());
 		
 		c.isServerRunning();

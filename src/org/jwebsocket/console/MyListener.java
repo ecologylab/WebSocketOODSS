@@ -14,11 +14,21 @@
 //	---------------------------------------------------------------------------
 package org.jwebsocket.console;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
+
 import org.apache.log4j.Logger;
 import org.jwebsocket.api.WebSocketPacket;
 import org.jwebsocket.api.WebSocketServerListener;
 import org.jwebsocket.kit.WebSocketServerEvent;
 import org.jwebsocket.logging.Logging;
+
+import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.messages.Ping;
+import ecologylab.oodss.messages.PingRequest;
+import ecologylab.serialization.ElementState.FORMAT;
+import ecologylab.serialization.SIMPLTranslationException;
 
 
 
@@ -43,7 +53,10 @@ if (lTS0 != null) {
  */
 public class MyListener implements WebSocketServerListener {
 
+	//put some object that has threaded events here....
 	private static Logger log = Logging.getLogger(MyListener.class);
+	
+	public DoubleThreadedAIOServer oodssServer = null;
 
 	/**
 	 *
@@ -68,16 +81,44 @@ public class MyListener implements WebSocketServerListener {
 		if (log.isDebugEnabled()) {
 			log.debug("Processing data packet '" + aPacket.getUTF8() + "'...");
 		}
+		
+		//aPacket.
+		
+		
+		
+		PingRequest p = new PingRequest();
+		
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		try {
+			p.serialize(outStream, FORMAT.JSON);
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String pJSON = new String(outStream.toByteArray());
+		System.out.println("pJSON:"+pJSON);
+		
+		String response = "";
+		if(oodssServer != null)
+		{
+			
+			response = oodssServer.getAPushFromWebSocket(aPacket.getUTF8(),aEvent.getConnector().getSession().getSessionId());//a.getAPushFromWebSocket(pJSON);
+		}
+			//a.getAPushFromWebSocket(aPacket.getUTF8());
+		
+		
 		//aPacket.setUTF8("[echo from jWebSocket v" + JWebSocketServerConstants.VERSION_STR + "] " + aPacket.getUTF8());
 		
 		//aPacket.setUTF8(aPacket.getUTF8());
 		//aPacket.setUTF8(new String("<meta>This is meta!</meta>"));
 		//worked->aPacket.setUTF8(new String("{\"ns\":\"org.jWebSocket.plugins.system\",\"utid\":25,\"data\":\"LALAlaaaalaLAAL\",\"targetId\":\"*\",\"type\":\"send\",\"sourceId\":\"51262\"}"));		
-		aPacket.setUTF8(new String("{\"data\":\"whatever\"}"));//SOON: replace with a get response message.. use translation scope.
+		aPacket.setUTF8(response);//new String("{\"data\":\"whatever\"}"));//SOON: replace with a get response message.. use translation scope.
 		
 		
 		
 		System.out.println("REALSTART:"+aPacket.getUTF8());
+		
 		//aPacket.
 		
 /*		StringBuilder lStrBuf = new StringBuilder();

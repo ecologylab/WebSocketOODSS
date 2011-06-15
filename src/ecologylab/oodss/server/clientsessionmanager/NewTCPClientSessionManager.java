@@ -35,6 +35,7 @@ import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.ElementState.FORMAT;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
 
@@ -649,9 +650,16 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 	protected RequestMessage translateOODSSRequest(CharSequence messageCharSequence, String startLineString)
 			throws SIMPLTranslationException
 	{
-		return (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence);
+		return (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence);	
 	}
 
+	
+	public /*protected*/ RequestMessage translateOODSSRequestJSON(CharSequence messageCharSequence)
+	throws SIMPLTranslationException
+	{
+		return (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);//deserializeCharSequence(messageCharSequence);	
+	}
+	
 	/**
 	 * Translates an incoming character sequence identified to be a GET request.
 	 * 
@@ -784,6 +792,27 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 
 		requestWithMetadata = reqPool.release(requestWithMetadata);
 
+		return response;
+	}
+	
+	public final ResponseMessage processRequest(RequestMessage request)
+	{
+		//RequestMessage request = requestWithMetadata.getMessage();
+
+		ResponseMessage response = super.processRequest(request);//,((SocketChannel) this.socketKey.channel()).socket().getInetAddress());
+
+		/*if (response != null)
+		{ // if the response is null, then we do
+			// nothing else
+			sendResponseToClient(requestWithMetadata, response, request);
+		}
+		else
+		{
+			debug("context manager did not produce a response message.");
+		}
+
+		requestWithMetadata = reqPool.release(requestWithMetadata);
+        */
 		return response;
 	}
 
@@ -1034,6 +1063,71 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 
 	}
 
+	
+	public final void /*not void later */ processStringJSON(CharSequence incomingMessage, long incomingUid)
+	{
+		Exception failReason = null;
+		RequestMessage request = null;
+		try
+		{
+			request = this.translateOODSSRequestJSON(incomingMessage);//this.translateStringToRequestMessage(incomingMessage);
+	        
+		}
+		catch (SIMPLTranslationException e)
+		{
+			// drop down to request == null, below
+			failReason = e;
+		}
+
+		if (request == null)
+		{
+			if (incomingMessage.length() > 100)
+			{
+				debug("ERROR; incoming message could not be translated: " + incomingMessage.toString());
+
+				debug("HEADERS:");
+				debug(headerMap.toString());
+
+				if (failReason != null)
+				{
+					debug("EXCEPTION: " + failReason.getMessage());
+					failReason.printStackTrace();
+				}
+			}
+			else
+			{
+				debug("ERROR; incoming message could not be translated: " + incomingMessage.toString());
+
+				debug("HEADERS:");
+				debug(headerMap.toString());
+
+				if (failReason != null)
+				{
+					debug("EXCEPTION: " + failReason.getMessage());
+					failReason.printStackTrace();
+				}
+			}
+			// else
+		}
+		else
+		{
+			/* pretty sure this is an error case.
+			badTransmissionCount = 0;
+
+			MessageWithMetadata<RequestMessage, Object> pReq = this.reqPool.acquire();
+
+			pReq.setMessage(request);
+			pReq.setUid(incomingUid);
+
+			synchronized (requestQueue)
+			{
+				this.enqueueRequest(pReq);
+			}
+			*/
+			System.out.println("!!!!Null response here.... :(");
+		}
+
+	}
 	/**
 	 * Takes an incoming message in the form of an XML String and converts it into a RequestMessage
 	 * using translateStringToRequestMessage(String). Then places the RequestMessage on the
@@ -1051,6 +1145,7 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 		try
 		{
 			request = this.translateStringToRequestMessage(incomingMessage);
+	        
 		}
 		catch (SIMPLTranslationException e)
 		{

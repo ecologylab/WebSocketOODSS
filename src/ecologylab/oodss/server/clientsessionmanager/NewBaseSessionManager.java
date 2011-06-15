@@ -104,6 +104,27 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 		return (S) new Scope(baseScope);
 	}
 
+
+	
+protected ResponseMessage performService(RequestMessage requestMessage)
+	{
+		//requestMessage.setSender(address);
+
+		try
+		{
+			return requestMessage.performService(localScope);
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+
+			return new BadSemanticContentResponse("The request, "
+					+ requestMessage.toString()
+					+ " caused an exception on the server.");
+		}
+	}
+	
+	
 	/**
 	 * Appends the sender's IP address to the incoming message and calls performService on the given
 	 * RequestMessage using the local ObjectRegistry.
@@ -192,6 +213,75 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 		return response;
 	}
 
+	
+
+	/**
+	 * Calls RequestMessage.performService(Scope) and returns the result.
+	 * 
+	 * @param request
+	 *          - the request message to process.
+	 */
+	public /*protected*/ ResponseMessage processRequest(RequestMessage request)
+	{
+		this.lastActivity = System.currentTimeMillis();
+
+		ResponseMessage response = null;
+
+		if (request == null)
+		{
+			debug("No request.");
+		}
+		
+		else
+		{
+			
+			response = performService(request);
+			/*
+			if (!isInitialized())
+			{
+				// special processing for InitConnectionRequest
+				if (request instanceof InitConnectionRequest)
+				{
+					String incomingSessionId = ((InitConnectionRequest) request).getSessionId();
+
+					if (incomingSessionId == null)
+					{ // client is not expecting an old ContextManager
+						response = new InitConnectionResponse(this.sessionId);
+					}
+					else
+					{ // client is expecting an old ContextManager
+						if (frontend.restoreContextManagerFromSessionId(incomingSessionId, this))
+						{
+							response = new InitConnectionResponse(incomingSessionId);
+						}
+						else
+						{
+							response = new InitConnectionResponse(this.sessionId);
+						}
+					}
+
+					initialized = true;
+				}
+			}
+			else
+			{
+				// perform the service being requested
+				response = performService(request, address);
+			}
+
+			if (response == null)
+			{
+				debug("context manager did not produce a response message.");
+			}
+			*/
+		}
+		
+
+		return response;
+	}
+
+	
+	
 	/**
 	 * Indicates the last System timestamp was when the ContextManager had any activity.
 	 * 

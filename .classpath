@@ -13,5 +13,7 @@
 			<attribute name="maven.scope" value="compile"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="src" path="/jWebSocketJavaSEClient"/>
+	<classpathentry kind="src" path="/jWebSocketClientAPI"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

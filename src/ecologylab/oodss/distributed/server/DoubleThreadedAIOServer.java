@@ -3,6 +3,7 @@
  */
 package ecologylab.oodss.distributed.server;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
@@ -12,6 +13,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import ecologylab.collections.Scope;
@@ -29,11 +31,15 @@ import ecologylab.oodss.distributed.server.clientsessionmanager.ClientSessionMan
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.distributed.server.clientsessionmanager.TCPClientSessionManager;
 import ecologylab.oodss.exceptions.BadClientException;
+import ecologylab.oodss.messages.RequestMessage;
+import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewSessionHandle;
 import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.ElementState.FORMAT;
 
 /**
  * A server that uses NIO and two threads (one for handling IO, the other for handling interfacing
@@ -121,6 +127,8 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		applicationObjectScope.put(SessionObjects.SESSIONS_MAP, clientSessionHandleMap);
 
 		instantiateBufferPools(this.maxMessageSize);
+		
+		sessionForSessionIdMap = new HashMap<String, NewClientSessionManager>();
 	}
 
 	/**
@@ -171,6 +179,62 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				applicationObjectScope, DEFAULT_IDLE_TIMEOUT, DEFAULT_MAX_MESSAGE_LENGTH_CHARS);
 	}
 
+	////////
+	HashMap<String, NewClientSessionManager> sessionForSessionIdMap;
+	
+	public String getAPushFromWebSocket(String s, String sessionId)
+	{
+		//should read more information about where this is coming from and add it to a queue or something...
+		//most of the thread stuff is handled by the jWebSocket architechure
+		
+		System.out.println("Just got getAPushFromWebSocket:"+s);
+		
+		
+		//String sessionId = "2212121212122112";
+		SelectionKey sk = null;//new Se;
+		NewClientSessionManager theClientSessionManages = null;
+		if(sessionForSessionIdMap.containsKey(sessionId))
+		{
+			theClientSessionManages = sessionForSessionIdMap.get(sessionId);
+		}
+		else
+		{
+			theClientSessionManages = new NewClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, null,
+					this.translationScope, this.applicationObjectScope );
+		}
+		
+		CharSequence cs = s;
+		RequestMessage request = null;
+		try {
+			request = theClientSessionManages.translateOODSSRequestJSON(s);
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}//processStringJSON(incomingMessage, incomingUid)
+		//Object cm = generateContextManager((String) sessionToken, sk, translationScope,
+		//		applicationObjectScope);
+		System.out.println("Got RequestMessage type:"+request.getClassName().toString());
+		ResponseMessage response = theClientSessionManages.processRequest(request);
+		System.out.println("Got ResponseMessage type:"+response.getClassName().toString());
+		
+		
+		
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		try {
+			response.serialize(outStream, FORMAT.JSON);
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String pJSON = new String(outStream.toByteArray());
+		return pJSON;
+	
+		
+	}
+	
+	////////
+	
 	public void processRead(Object sessionToken, AIOServerIOThread base, SelectionKey sk,
 			ByteBuffer bs, int bytesRead) throws BadClientException
 	{
