@@ -120,7 +120,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	private final Queue<MessageWithMetadata<ServiceMessage, Object>>	blockingResponsesQueue				= new LinkedBlockingQueue<MessageWithMetadata<ServiceMessage, Object>>();
 
 
-	private final Queue<ResponseMessage>	newBlockingResponsesQueue				= new LinkedBlockingQueue<ResponseMessage>();
+	private Queue<ResponseMessage>	newBlockingResponsesQueue				= new LinkedBlockingQueue<ResponseMessage>();
 
 	
 	protected final Queue<PreppedRequest>															requestsQueue									= new LinkedBlockingQueue<PreppedRequest>();
@@ -265,7 +265,8 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	 */
 	public boolean connect()
 	{
-		debug("initializing connection...");
+		debug("initializing connection... NOT REALLY");
+		/*
 		if (this.connectImpl())
 		{
 			debug("starting listener thread...");
@@ -311,6 +312,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		this.notifyOfStatusChange(this.connected());
 
 		debug("connected? " + this.connected());
+		*/
 		return connected();
 	}
 
@@ -608,11 +610,16 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			//throws MessageTooLargeException
 	{
 		
+		// notify the connection thread that we are waiting on a response
+		blockingRequestPending = true;
+		debug("I actually think Iwill wait here...");
+		
 		PingRequest p = new PingRequest();
 		RequestMessage requestMessage = (RequestMessage) request;
 		
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 		try {
+			
 			requestMessage.serialize(outStream, FORMAT.JSON);
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
@@ -622,6 +629,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		String pJSON = new String(outStream.toByteArray());
 		System.out.println("pJSON:"+pJSON);
 		try {
+			debug("sending the request message "+pJSON);
 			webSocketClient.sendText("5",pJSON);
 		} catch (WebSocketException e) {
 			// TODO Auto-generated catch block
@@ -733,8 +741,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		return null;
 		*/
 		
-		// notify the connection thread that we are waiting on a response
-		blockingRequestPending = true;
+		
 
 		long currentMessageUid;
 
@@ -748,6 +755,8 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			if (timeOutMillis <= -1)
 			{
 				debug("HEY....   waiting on blocking request");
+				//debug("psyce!");
+				//return null;
 			}
 
 			try
@@ -1156,6 +1165,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			}
 			else if (response.getMessage() instanceof UpdateMessage)
 			{
+				debug("Guess what.  I noticed that is is an update message. YOU WIN!!!");
 				processUpdate((UpdateMessage) response.getMessage());
 			}
 		}
@@ -1190,7 +1200,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			e.printStackTrace();
 		}
 
-		if (response == null)
+		if (actualRespose == null)
 		{
 			debug("ERROR: translation failed: ");
 		}
@@ -1200,6 +1210,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			{
 				// perform the service being requested
 				processResponse((ResponseMessage) actualRespose);
+				return actualRespose;
                     ////really hope this does not break something
 				
 				/*
@@ -1218,7 +1229,9 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			else if (actualRespose instanceof UpdateMessage)
 			{
 				//this will fail at the moment
-				processUpdate((UpdateMessage) response.getMessage());
+				//processUpdate((UpdateMessage) response.getMessage());
+				processUpdate((UpdateMessage) actualRespose);
+				
 			}
 		}
 
@@ -1231,7 +1244,14 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	
 	public void disconnect()
 	{
-		disconnect(true);
+		//disconnect(true);
+		try {
+			webSocketClient.disconnect();
+		} catch (WebSocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		//this.stop();
 	}
 
 	/**
@@ -1555,7 +1575,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			String messageString) throws SIMPLTranslationException
 	{
 		ServiceMessage resp = (ServiceMessage) this.translationScope
-				.deserializeCharSequence(messageString);
+				.deserializeCharSequence(messageString,FORMAT.JSON);
 
 		if (resp == null)
 		{
@@ -1765,6 +1785,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	
 	private void initializeWebSocketClient()
 	{
+		newBlockingResponsesQueue = new LinkedBlockingQueue<ResponseMessage>();//new 
 		webSocketClient = new BaseTokenClient();
 		webSocketClient.addListener(this);	
 		
@@ -1776,12 +1797,13 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 				e.printStackTrace();
 			}
 
-			try {
+		/*	try {
 				Thread.sleep(2000);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			*/
 			/*
 			try {
 				
@@ -1947,9 +1969,17 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		
 	}
 
+	
+	boolean processedFirstMessage = false;
 	@Override//can i add synchronized here?...
 	public void processPacket(WebSocketClientEvent aEvent,
 			WebSocketPacket aPacket) {
+		if(!processedFirstMessage)
+		{
+			System.out.println("Skipping the message:"+aPacket.getUTF8());
+			processedFirstMessage = true;
+			return;
+		}
 		// TODO Auto-generated method stub
 		System.out.println("TestWebSocketClient:processPacket+"+aPacket.getUTF8());
 		String responseJSON = aPacket.getUTF8();
@@ -1970,7 +2000,9 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		}
 		else
 		{
-			newBlockingResponsesQueue.add((ResponseMessage)processString(responseJSON));
+			ResponseMessage rma = (ResponseMessage)processString(responseJSON);
+			
+			newBlockingResponsesQueue.add(rma);
 			synchronized (this)
 			{
 				notify();

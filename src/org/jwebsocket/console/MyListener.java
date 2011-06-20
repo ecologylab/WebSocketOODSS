@@ -114,7 +114,7 @@ public class MyListener implements WebSocketServerListener {
 		//aPacket.setUTF8(new String("<meta>This is meta!</meta>"));
 		//worked->aPacket.setUTF8(new String("{\"ns\":\"org.jWebSocket.plugins.system\",\"utid\":25,\"data\":\"LALAlaaaalaLAAL\",\"targetId\":\"*\",\"type\":\"send\",\"sourceId\":\"51262\"}"));		
 		aPacket.setUTF8(response);//new String("{\"data\":\"whatever\"}"));//SOON: replace with a get response message.. use translation scope.
-		
+		System.out.println("THIS is the response that the server is about to send:"+response);
 		
 		
 		System.out.println("REALSTART:"+aPacket.getUTF8());
@@ -139,6 +139,7 @@ public class MyListener implements WebSocketServerListener {
 	public void processClosed(WebSocketServerEvent aEvent) {
 		System.out.println("NEWSTUFFTHATIWROTE:aEvent");
 		if (log.isDebugEnabled()) {
+			
 			log.debug("Client '" + aEvent.getSessionId() + "' disconnected.");
 		}
 	}

@@ -926,6 +926,12 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 
 	public synchronized void sendUpdateToClient(UpdateMessage<?> update)
 	{
+		//inherent to 
+		
+	}
+	
+	public synchronized void sendUpdateToClientOld(UpdateMessage<?> update)
+	{
 		StringBuilder msgBufOutgoing = this.frontend.getSharedStringBuilderPool().acquire();
 
 		if (this.isInvalidating())

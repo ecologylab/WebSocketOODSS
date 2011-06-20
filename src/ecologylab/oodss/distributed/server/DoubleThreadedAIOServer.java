@@ -5,6 +5,7 @@ package ecologylab.oodss.distributed.server;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -15,6 +16,11 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.util.HashMap;
 import java.util.Iterator;
+
+import org.jwebsocket.api.WebSocketConnector;
+import org.jwebsocket.api.WebSocketPacket;
+import org.jwebsocket.api.WebSocketServer;
+import org.jwebsocket.kit.RawPacket;
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.CharBufferPool;
@@ -33,6 +39,7 @@ import ecologylab.oodss.distributed.server.clientsessionmanager.TCPClientSession
 import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
+import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewSessionHandle;
@@ -55,6 +62,61 @@ import ecologylab.serialization.ElementState.FORMAT;
 public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<S> implements
 		ServerConstants
 {
+	
+	public WebSocketServer webSocketServer;
+	
+    public void blah(WebSocketServer webSocketServer2)
+    {
+    	webSocketServer = webSocketServer2;
+    }
+    
+    public void printNumberOfConnectedClients()
+    {
+    	System.out.println("In this map, we have "+webSocketServer.getAllConnectors().size()+ " Connected Clients..xxxxx");
+    }
+    
+    public void sendUpdateMessage(String clientId, UpdateMessage updateMessage)
+    {
+    	debug("Sending update message to client:"+clientId);
+    	//WebSocketPacket packet = new ;
+    	//todo, make serialized update message
+    	//updateMessage.ser
+    	//RawPacket rp = new RawPacket();
+    	
+    	OutputStream s;
+		//WebSocketPacket webSocketPacket = new
+    	
+    	
+		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+		try {
+			updateMessage.serialize(outStream, FORMAT.JSON);
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String pJSON = new String(outStream.toByteArray());
+		System.out.println("pJSON:"+pJSON);
+        RawPacket updateMessagePacket = new RawPacket(outStream.toByteArray());	
+    	
+	    //WebSocketConnector theConnector = webSocketServer.getConnector(clientId);
+	    for(String connectorKey : webSocketServer.getAllConnectors().keySet())
+	    {
+	    	
+	    	WebSocketConnector theConnector = webSocketServer.getConnector(connectorKey);
+	    	String sessionKey = theConnector.getSession().getSessionId();
+	    	if(sessionKey == clientId)
+	    	{
+	    		theConnector.sendPacket(updateMessagePacket);
+	    	}
+	    	
+	    }
+	   // webSocketServer.getAllConnectors();
+	    
+	    //
+	    //.sendPacket(updateMessagePacket);
+    }
+	
 	protected static InetAddress[] addressToAddresses(InetAddress address)
 	{
 		InetAddress[] addresses =
@@ -89,6 +151,10 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 */
 	private HashMapArrayList<Object, NewTCPClientSessionManager>	clientSessionManagerMap	= new HashMapArrayList<Object, NewTCPClientSessionManager>();
 
+	public HashMap<String, NewClientSessionManager> GetAllSessions()
+	{
+		return sessionForSessionIdMap;
+	}
 	/**
 	 * Map in which keys are sessionTokens, and values are associated SessionHandles
 	 */
@@ -201,6 +267,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		{
 			theClientSessionManages = new NewClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, null,
 					this.translationScope, this.applicationObjectScope );
+			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
 		}
 		
 		CharSequence cs = s;
