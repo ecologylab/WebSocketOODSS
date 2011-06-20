@@ -18,7 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 
-import org.apache.log4j.Logger;
+
 import org.jwebsocket.api.WebSocketPacket;
 import org.jwebsocket.api.WebSocketServerListener;
 import org.jwebsocket.kit.WebSocketServerEvent;
@@ -54,7 +54,7 @@ if (lTS0 != null) {
 public class MyListener implements WebSocketServerListener {
 
 	//put some object that has threaded events here....
-	private static Logger log = Logging.getLogger(MyListener.class);
+	//private static Logger log = Logging.getLogger(MyListener.class);
 	
 	public DoubleThreadedAIOServer oodssServer = null;
 
@@ -65,9 +65,10 @@ public class MyListener implements WebSocketServerListener {
 	@Override
 	public void processOpened(WebSocketServerEvent aEvent) {
 		System.out.println("NEWSTUFFTHATIWROTE:processOpened");
-		if (log.isDebugEnabled()) {
-			log.debug("Client '" + aEvent.getSessionId() + "' connected.");
-		}
+	//	if (log.isDebugEnabled()) {
+	//		log.debug("Client '" + aEvent.getSessionId() + "' connected.");
+		//}
+		System.out.println( "Client '" + aEvent.getSessionId() + "' connected.");
 	}
 
 	/**
@@ -78,10 +79,10 @@ public class MyListener implements WebSocketServerListener {
 	@Override
 	public void processPacket(WebSocketServerEvent aEvent, WebSocketPacket aPacket) {
 		System.out.println("NEWSTUFFTHATIWROTE:processPacket");
-		if (log.isDebugEnabled()) {
-			log.debug("Processing data packet '" + aPacket.getUTF8() + "'...");
-		}
-		
+		//if (log.isDebugEnabled()) {
+		//	log.debug("Processing data packet '" + aPacket.getUTF8() + "'...");
+		//}
+		System.out.println( "Processing data packet '" + aPacket.getUTF8() + "'...");
 		//aPacket.
 		
 		
@@ -138,9 +139,10 @@ public class MyListener implements WebSocketServerListener {
 	@Override
 	public void processClosed(WebSocketServerEvent aEvent) {
 		System.out.println("NEWSTUFFTHATIWROTE:aEvent");
-		if (log.isDebugEnabled()) {
+		//if (log.isDebugEnabled()) {
 			
-			log.debug("Client '" + aEvent.getSessionId() + "' disconnected.");
-		}
+		//	log.debug("Client '" + aEvent.getSessionId() + "' disconnected.");
+	//	}
+		System.out.println("Client '" + aEvent.getSessionId() + "' disconnected.");
 	}
 }
