@@ -9,6 +9,9 @@ import java.util.Iterator;
 
 import org.jwebsocket.config.JWebSocketServerConstants;
 
+import quiz.JoinGameRequest;
+import quiz.QuizGameServer;
+
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
 import ecologylab.net.NetTools;
@@ -17,6 +20,7 @@ import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+import ecologylab.serialization.TranslationScope;
 
 /**
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
@@ -47,12 +51,24 @@ public class TestServer
 	
 	public static DoubleThreadedAIOServer getServer()
 	{
-		NewExtendedServer s = null;
+		
+		DoubleThreadedAIOServer s = null;
 		try {
+			/*
 			s = NewExtendedServer.getInstance(
 					7833, 
 					NetTools.getAllInetAddressesForLocalhost(), 
 					DefaultServicesTranslations.get(), 
+					new Scope(), 
+					100000, 
+					100000);
+					*/
+			TranslationScope ts = DefaultServicesTranslations.get();
+			ts.addTranslation(JoinGameRequest.class);
+			s = QuizGameServer.getInstance(
+					7833, 
+					NetTools.getAllInetAddressesForLocalhost(), 
+					ts, 
 					new Scope(), 
 					100000, 
 					100000);

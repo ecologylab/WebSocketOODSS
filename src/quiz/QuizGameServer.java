@@ -1,4 +1,4 @@
-package ecologylab.standalone;
+package quiz;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -16,11 +16,24 @@ import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
+import ecologylab.standalone.TestUpdateMessage;
 
-public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
+public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 
+	//Small todo list:
+	//parse file to make 
+	
+	//make a java client that gives a person a name via request message in a given session
+	//make a players update message lets one know when someone entered the room and what their score and status is
+	//make an update message for chat
+	//make a game start update message
+	//make a player vote message
+	//make a next round update message
+	//make an end of game message
+	
+	
 	Timer timer;
-	public NewExtendedServer(int portNumber,
+	public QuizGameServer(int portNumber,
 			InetAddress[] allInetAddressesForLocalhost,
 			TranslationScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
@@ -56,7 +69,7 @@ public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
 		timer.start();
 	}
 
-	public static NewExtendedServer getInstance(int portNumber,
+	public static QuizGameServer getInstance(int portNumber,
 			InetAddress[] allInetAddressesForLocalhost,
 			TranslationScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
@@ -64,7 +77,7 @@ public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
 		// TODO Auto-generated method stub
 		
 		
-		return new NewExtendedServer(portNumber,
+		return new QuizGameServer(portNumber,
 				allInetAddressesForLocalhost,
 				requestTranslationScope,
 				applicationObjectScope,
