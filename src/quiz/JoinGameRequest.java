@@ -16,7 +16,11 @@ public @simpl_inherit class JoinGameRequest extends RequestMessage {
 	
 	@Override
 	public ResponseMessage performService(Scope clientSessionScope) {
+		QuizGameServer server = ((QuizGameServer)clientSessionScope.get("server"));
 		Debug.println(playerName+" just decided to join the game");
+		server.players.add(new Player(playerName, 1, ""));
+		//need new method
+		server.UpdatePlayers();
 		return OkResponse.get();
 	}
 	
@@ -24,6 +28,7 @@ public @simpl_inherit class JoinGameRequest extends RequestMessage {
 	
 	public JoinGameRequest(String name){
 		playerName = name;
+		Scope done = null;
 	}
 
 }

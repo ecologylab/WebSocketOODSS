@@ -5,6 +5,7 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -20,10 +21,12 @@ import ecologylab.standalone.TestUpdateMessage;
 
 public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 
+	public static ArrayList<Player> players = new ArrayList<Player>();
 	//Small todo list:
 	//parse file to make 
 	
 	//make a java client that gives a person a name via request message in a given session
+//Done
 	//make a players update message lets one know when someone entered the room and what their score and status is
 	//make an update message for chat
 	//make a game start update message
@@ -31,6 +34,7 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 	//make a next round update message
 	//make an end of game message
 	
+	//public static void 
 	
 	Timer timer;
 	public QuizGameServer(int portNumber,
@@ -48,13 +52,10 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 				
 				
 				HashMap<String, NewClientSessionManager> allSessions = GetAllSessions();
-
 				System.out.println("HEY THIS TIME JUST WENT OFFFF.... there are "+allSessions.size());
 				Iterator contextIter = allSessions.values().iterator();
-
 				// process all of the messages in the queues
 				TestUpdateMessage testUpdateMessage = new TestUpdateMessage("Hey guys","friendly",501);
-			    
 				while (contextIter.hasNext())
 				{
 					NewTCPClientSessionManager clientSession = (NewTCPClientSessionManager) contextIter.next();
@@ -68,6 +69,21 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 		});
 		timer.start();
 	}
+	
+	public void UpdatePlayers()
+	{
+		//((QuizGameServer)clientSessionScope.get("server")).send//.sendUpdateMessage(clientId, updateMessage);
+		HashMap<String, NewClientSessionManager> allSessions = GetAllSessions();
+		Iterator contextIter = allSessions.values().iterator();
+		// process all of the messages in the queues
+		TestUpdateMessage testUpdateMessage = new TestUpdateMessage("Hey guys","friendly",501);
+		while (contextIter.hasNext())
+		{
+			NewTCPClientSessionManager clientSession = (NewTCPClientSessionManager) contextIter.next();
+			sendUpdateMessage(clientSession.getHandle().getSessionId().toString(),new PlayersAndScoresUpdateMessage(players));
+		}
+		    
+	}
 
 	public static QuizGameServer getInstance(int portNumber,
 			InetAddress[] allInetAddressesForLocalhost,
@@ -77,12 +93,15 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 		// TODO Auto-generated method stub
 		
 		
-		return new QuizGameServer(portNumber,
+		
+		QuizGameServer temp = new QuizGameServer(portNumber,
 				allInetAddressesForLocalhost,
 				requestTranslationScope,
 				applicationObjectScope,
 				idleConnectionTimeout,
 				maxPacketSize);
+		applicationObjectScope.put("server", temp);
+		return temp;
 	}
 
 	
