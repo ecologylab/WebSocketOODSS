@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import ecologylab.helper.Helper;
+import ecologylab.serialization.SIMPLTranslationException;
 
 public class CreateDataAndMakeJSON {
 
@@ -29,12 +30,19 @@ public class CreateDataAndMakeJSON {
 		System.out.println("Item");
 	    System.out.println(Helper.ElementStateToJSON(new Item(25,"Rhema","pick")));
 	    HashMap<String, Item> itemMap = new HashMap<String, Item>();
-	    itemMap.put("pick1", new Item(25,"Rhema","pick"));
-	    itemMap.put("pick2", new Item(25,"Rhema","gold-pick"));
-	    itemMap.put("pick3", new Item(25,"Rhema","iron-pick"));
-	    itemMap.put("door1", new Item(25,"George","door"));
+	    itemMap.put("Sam", new Item(25,"Sam","pick"));
+	    itemMap.put("Jerry", new Item(25,"Jerry","gold-pick"));
+	    itemMap.put("Rhema", new Item(25,"Rhema","iron-pick"));
+	    itemMap.put("George", new Item(25,"George","door"));
 	    System.out.println("Bank");
 		System.out.println( Helper.ElementStateToJSON( new Bank(itemMap)));
+		try {
+			System.out.println( ( new Bank(itemMap)).serialize().toString() );
+		} catch (SIMPLTranslationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		
 	}
 }

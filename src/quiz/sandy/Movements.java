@@ -8,6 +8,7 @@ import ecologylab.serialization.ElementState.simpl_scalar;
 
 public class Movements extends ElementState {
 	@simpl_scalar float time;
+	@simpl_nowrap
 	@simpl_collection("moves") ArrayList<Move> moves;
 	public Movements(float time, ArrayList<Move> moves) {
 		super();
