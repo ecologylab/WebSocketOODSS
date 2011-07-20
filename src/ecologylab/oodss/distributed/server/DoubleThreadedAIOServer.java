@@ -280,9 +280,9 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		}//processStringJSON(incomingMessage, incomingUid)
 		//Object cm = generateContextManager((String) sessionToken, sk, translationScope,
 		//		applicationObjectScope);
-		System.out.println("Got RequestMessage type:"+request.getClassName().toString());
+		//System.out.println("Got RequestMessage type:"+request.getClassName().toString());
 		ResponseMessage response = theClientSessionManages.processRequest(request);
-		System.out.println("Got ResponseMessage type:"+response.getClassName().toString());
+		//System.out.println("Got ResponseMessage type:"+response.getClassName().toString());
 		
 		
 		
