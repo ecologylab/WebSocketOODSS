@@ -12,7 +12,6 @@ import ecologylab.collections.Scope;
 import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.distributed.server.AIOServerDataReader;
-import ecologylab.oodss.distributed.server.clientsessionmanager.BaseSessionManager;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.serialization.TranslationScope;
@@ -60,8 +59,8 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 		this.translationScope = backend.translationScope;
 		this.applicationObjectScope = (S) backend.objectRegistry;
 
-		this.applicationObjectScope.put(MAIN_START_AND_STOPPABLE, this);
-		this.applicationObjectScope.put(MAIN_SHUTDOWNABLE, this);
+		//this.applicationObjectScope.put(MAIN_START_AND_STOPPABLE, this);
+		//this.applicationObjectScope.put(MAIN_SHUTDOWNABLE, this);
 	}
 
 	static final Class[]	OUR_TRANSLATIONS	=
@@ -120,9 +119,9 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	{
 		try
 		{
-			backend.openSelector();
+			//backend.openSelector();
 			backend.registerAcceptWithSelector();
-			backend.start();
+			//backend.start();
 		}
 		catch (IOException e)
 		{
@@ -135,7 +134,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	 */
 	public void stop()
 	{
-		backend.stop();
+		//backend.stop();
 	}
 
 	/**

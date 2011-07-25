@@ -49,8 +49,6 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 				objectRegistry, idleSocketTimeout, maxMessageLength);
 	}
 
-	private final ArrayList<ServerSocket>												incomingConnectionSockets	= new ArrayList<ServerSocket>();
-
 	private AIOServerDataReader																	sAP;
 
 	private int																									idleSocketTimeout;
@@ -67,13 +65,12 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 
 	private InetAddress[]																				hostAddresses;
 
-	private final ArrayList<InetAddress>												boundAddresses						= new ArrayList<InetAddress>();
 
 	protected AIOServerIOThread(int portNumber, InetAddress[] hostAddresses, AIOServerDataReader sAP,
 			TranslationScope requestTranslationSpace, Scope<?> objectRegistry, int idleSocketTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
-		super("NIOServer", portNumber, requestTranslationSpace, objectRegistry, maxMessageLength);
+		//super("NIOServer", portNumber, requestTranslationSpace, objectRegistry, maxMessageLength);
 
 		this.construct(hostAddresses, sAP, idleSocketTimeout);
 	}
@@ -113,235 +110,6 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 	 * they have.
 	 * 
 	 */
-	@Override
-	protected void checkAndDropIdleKeys()
-	{
-		LinkedList<SelectionKey> keysToInvalidate = new LinkedList<SelectionKey>();
-		long timeStamp = System.currentTimeMillis();
-
-		if (idleSocketTimeout > -1)
-		{ /*
-			 * after we select, we'll check to see if we need to boot any idle keys
-			 */
-			for (SelectionKey sKey : keyActivityTimes.keySet())
-			{
-				if ((timeStamp - keyActivityTimes.get(sKey)) > idleSocketTimeout)
-				{
-					keysToInvalidate.add(sKey);
-				}
-			}
-		}
-		else
-		{ /*
-			 * We have to clean up the key set at some point; use GARBAGE_CONNECTION_CLEANUP_TIMEOUT
-			 */
-			for (SelectionKey sKey : keyActivityTimes.keySet())
-			{
-				if ((timeStamp - keyActivityTimes.get(sKey)) > GARBAGE_CONNECTION_CLEANUP_TIMEOUT)
-				{
-					keysToInvalidate.add(sKey);
-				}
-			}
-		}
-
-		// remove all the invalid keys
-		for (SelectionKey keyToInvalidate : keysToInvalidate)
-		{
-			debug(keyToInvalidate.attachment() + " took too long to request; disconnecting.");
-			keyActivityTimes.remove(keyToInvalidate);
-			this.setPendingInvalidate(keyToInvalidate, true);
-		}
-	}
-
-	/**
-	 * Accept an incoming connection from a client to a server, if the server has connections
-	 * available and the client is not bad. Generate a session identifier and attach it to the
-	 * newly-connected client's SelectionKey, so that a client session manager can be associated with
-	 * the connection.
-	 */
-	@Override
-	protected final void acceptKey(SelectionKey key)
-	{
-		try
-		{
-			int numConn = selector.keys().size() - 1;
-
-			debug("connections running: " + numConn);
-
-			if (numConn < MAX_CONNECTIONS)
-			{ // the keyset includes this side of the connection
-				if (numConn - 1 == MAX_CONNECTIONS)
-				{
-					debug("Maximum connections reached; disabling accept until a client drops.");
-
-					for (ServerSocket s : this.incomingConnectionSockets)
-					{
-						SelectionKey closingKey = s.getChannel().keyFor(this.selector);
-						closingKey.cancel();
-						s.close();
-						closingKey.channel().close();
-					}
-
-					acceptEnabled = false;
-				}
-
-				SocketChannel newlyAcceptedChannel = ((ServerSocketChannel) key.channel()).accept();
-
-				InetAddress address = newlyAcceptedChannel.socket().getInetAddress();
-
-				debug("new address: " + address.getHostAddress());
-
-				if (!BadClientException.isEvilHostByNumber(address.getHostAddress()))
-				{
-					newlyAcceptedChannel.configureBlocking(false);
-
-					// when we register, we want to attach the proper
-					// session token to all of the keys associated with
-					// this connection, so we can sort them out later.
-					String keyAttachment = this.generateSessionToken(newlyAcceptedChannel.socket());
-
-					SelectionKey newKey = newlyAcceptedChannel.register(selector, SelectionKey.OP_READ,
-							keyAttachment);
-
-					this.keyActivityTimes.put(newKey, System.currentTimeMillis());
-
-					if ((ipToKeyOrKeys.get(address.getHostAddress())) == null)
-					{
-						debug(address + " not in our list, adding it.");
-
-						ipToKeyOrKeys.put(address.getHostAddress(), new ObjectOrHashMap<String, SelectionKey>(
-								keyAttachment, newKey));
-					}
-					else
-					{
-						debug(address + " is in our list, adding another key.");
-						synchronized (ipToKeyOrKeys)
-						{
-							ipToKeyOrKeys.get(address.getHostAddress()).put(keyAttachment, newKey);
-							System.out.println("new size: " + ipToKeyOrKeys.get(address.getHostAddress()).size());
-						}
-					}
-
-					debug("Now connected to "
-							+ newlyAcceptedChannel
-							+ ", "
-							+ (MAX_CONNECTIONS - numConn - 1)
-							+ " connections remaining.");
-
-					return;
-				}
-			}
-
-			// we will prematurely exit before now if it's a good connection
-			// so now it's a bad one; disconnect it and return null
-			SocketChannel tempChannel = ((ServerSocketChannel) key.channel()).accept();
-
-			InetAddress address = null;
-
-			if (tempChannel != null && tempChannel.socket() != null)
-			{
-				address = tempChannel.socket().getInetAddress();
-
-				// shut it all down
-				tempChannel.socket().shutdownInput();
-				tempChannel.socket().shutdownOutput();
-				tempChannel.socket().close();
-				tempChannel.close();
-			}
-			// show a debug message
-			if (numConn >= MAX_CONNECTIONS)
-				debug("Rejected connection; already fulfilled max connections.");
-			else
-				debug("Evil host attempted to connect: " + address);
-
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		catch (NullPointerException e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIONetworking#removeBadConnections()
-	 */
-	@Override
-	protected void removeBadConnections(SelectionKey key)
-	{
-		// shut them ALL down!
-		InetAddress address = ((SocketChannel) key.channel()).socket().getInetAddress();
-
-		ObjectOrHashMap<String, SelectionKey> keyOrKeys = ipToKeyOrKeys.get(address.getHostAddress());
-
-		Iterator<SelectionKey> allKeysForIp = keyOrKeys.values().iterator();
-
-		debug("***********Shutting down all clients from " + address.getHostAddress());
-
-		while (allKeysForIp.hasNext())
-		{
-			SelectionKey keyForIp = allKeysForIp.next();
-
-			debug("shutting down " + ((SocketChannel) keyForIp.channel()).socket().getInetAddress());
-
-			this.setPendingInvalidate(keyForIp, true);
-		}
-
-		keyOrKeys.clear();
-		ipToKeyOrKeys.remove(address.getHostAddress());
-	}
-
-	/**
-	 * Handles the client manager for the socket (remove if permanent) and shuts down communication on
-	 * the socket.
-	 * 
-	 * @see ecologylab.oodss.distributed.impl.AIONetworking#invalidateKey(java.nio.channels.SocketChannel,
-	 *      boolean)
-	 */
-	@Override
-	protected void invalidateKey(SelectionKey key, boolean permanent)
-	{
-		SocketChannel chan = (SocketChannel) key.channel();
-		InetAddress address = chan.socket().getInetAddress();
-
-		sAP.invalidate((String) key.attachment(), permanent);
-
-		super.invalidateKey(chan);
-
-		ObjectOrHashMap<String, SelectionKey> keyOrKeys = this.ipToKeyOrKeys.get(address
-				.getHostAddress());
-
-		if (keyOrKeys != null)
-		{
-			keyOrKeys.remove(address);
-
-			if (keyOrKeys.isEmpty())
-			{
-				this.ipToKeyOrKeys.remove(chan.socket().getInetAddress().getHostAddress());
-			}
-		}
-		this.keyActivityTimes.remove(key);
-
-		/*
-		 * decrement numConnections & if the server disabled new connections due to hitting
-		 * max_connections, re-enable
-		 */
-		if (selector.keys().size() < MAX_CONNECTIONS && !acceptEnabled)
-		{
-			try
-			{
-				this.registerAcceptWithSelector();
-			}
-			catch (IOException e)
-			{
-				debug("Unable to re-open socket for accepts; critical failure.");
-				e.printStackTrace();
-			}
-		}
-	}
-
 	/**
 	 * Attempts to bind all of the ports in the hostAddresses array. If a port cannot be bound, it is
 	 * removed from the hostAddresses array.
@@ -350,35 +118,35 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 	 */
 	void registerAcceptWithSelector() throws IOException
 	{
-		boundAddresses.clear();
-		incomingConnectionSockets.clear();
+	//	boundAddresses.clear();
+		//incomingConnectionSockets.clear();
 
 		for (int i = 0; i < hostAddresses.length; i++)
 		{
 			debug("setting up accept on " + hostAddresses[i]);
 
 			// acquire the static ServerSocketChannel object
-			ServerSocketChannel channel = ServerSocketChannel.open();
+			//ServerSocketChannel channel = ServerSocketChannel.open();
 
 			// disable blocking
-			channel.configureBlocking(false);
+			//channel.configureBlocking(false);
 
-			try
-			{
-				ServerSocket newSocket = channel.socket();
+			//try
+			//{
+				//ServerSocket newSocket = channel.socket();
 				// get the socket associated with the channel
 
 				// bind to the port for this server
-				newSocket.bind(new InetSocketAddress(hostAddresses[i], portNumber));
+				//newSocket.bind(new InetSocketAddress(hostAddresses[i], portNumber));
 
-				newSocket.setReuseAddress(true);
+				//newSocket.setReuseAddress(true);
 
-				channel.register(this.selector, SelectionKey.OP_ACCEPT);
+				//channel.register(this.selector, SelectionKey.OP_ACCEPT);
 
-				this.incomingConnectionSockets.add(newSocket);
-				this.boundAddresses.add(hostAddresses[i]);
-			}
-			catch (BindException e)
+//				this.incomingConnectionSockets.add(newSocket);
+				//this.boundAddresses.add(hostAddresses[i]);
+			//}
+			/*catch (BindException e)
 			{
 				debug("Unable to bind " + hostAddresses[i]);
 				debug(e.getMessage());
@@ -387,13 +155,13 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 			catch (SocketException e)
 			{
 				System.err.println(e.getMessage());
-			}
+			}*/
 		}
 
-		if (this.boundAddresses.size() == 0)
-		{
-			throw new BindException("Server was unable to bind to any addresses.");
-		}
+//		if (this.boundAddresses.size() == 0)
+	//	{
+	//		throw new BindException("Server was unable to bind to any addresses.");
+		//}
 
 		// register the channel with the selector to look for incoming
 		// accept requests
@@ -431,25 +199,7 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 		return new String(digester.digest());// new String((new BASE64Encoder()).encode(digester.digest()));
 	}
 
-	@Override
-	protected void close()
-	{
-		try
-		{
-			debug("Closing selector.");
-			selector.close();
 
-			debug("Unbinding.");
-			for (ServerSocket s : incomingConnectionSockets)
-			{
-				s.close();
-			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
 
 	@Override
 	protected void processReadData(Object sessionToken, SelectionKey sk, ByteBuffer bytes,
@@ -460,58 +210,19 @@ public class AIOServerIOThread extends AIONetworking implements ServerConstants
 	}
 
 	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#acceptReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void acceptReady(SelectionKey key)
-	{
-		this.acceptKey(key);
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#connectReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void connectReady(SelectionKey key)
-	{
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#readFinished(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void readFinished(SelectionKey key)
-	{
-	}
-
-	/**
 	 * @param socket
 	 * @param permanent
 	 */
 	public void setPendingInvalidate(SocketChannel socket, boolean permanent)
 	{
-		this.setPendingInvalidate(socket.keyFor(selector), permanent);
+		//this.setPendingInvalidate(socket.keyFor(selector), permanent);
 	}
 
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#acceptFinished(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	public void acceptFinished(SelectionKey key)
-	{
-	}
 
 	@Override
-	protected boolean handleInvalidate(SelectionKey key, boolean forcePermanent)
-	{
-		return this.sAP.invalidate((String) key.attachment(), forcePermanent);
+	protected void acceptKey(SelectionKey key) {
+		// TODO Auto-generated method stub
+		
 	}
 
-	/**
-	 * @return the boundAddresses
-	 */
-	public ArrayList<InetAddress> getBoundAddresses()
-	{
-		return boundAddresses;
-	}
 }

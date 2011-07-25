@@ -657,7 +657,10 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 	public /*protected*/ RequestMessage translateOODSSRequestJSON(CharSequence messageCharSequence)
 	throws SIMPLTranslationException
 	{
-		return (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);//deserializeCharSequence(messageCharSequence);	
+		System.out.println(1.1);
+		RequestMessage rm =  (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);
+		System.out.println(1.2);
+		return rm;//deserializeCharSequence(messageCharSequence);	
 	}
 	
 	/**

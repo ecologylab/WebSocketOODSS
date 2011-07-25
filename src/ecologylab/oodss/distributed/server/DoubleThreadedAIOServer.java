@@ -18,7 +18,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import org.jwebsocket.api.WebSocketConnector;
-import org.jwebsocket.api.WebSocketPacket;
 import org.jwebsocket.api.WebSocketServer;
 import org.jwebsocket.kit.RawPacket;
 
@@ -32,10 +31,6 @@ import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.distributed.impl.AbstractAIOServer;
 import ecologylab.oodss.distributed.impl.AIOServerIOThread;
-import ecologylab.oodss.distributed.server.clientsessionmanager.BaseSessionManager;
-import ecologylab.oodss.distributed.server.clientsessionmanager.ClientSessionManager;
-import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
-import ecologylab.oodss.distributed.server.clientsessionmanager.TCPClientSessionManager;
 import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
@@ -189,6 +184,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				idleConnectionTimeout, maxMessageSize);
 
 		this.maxMessageSize = maxMessageSize + MAX_HTTP_HEADER_LENGTH;
+		this.translationScope = requestTranslationScope;//gbgbgb
 
 		applicationObjectScope.put(SessionObjects.SESSIONS_MAP, clientSessionHandleMap);
 
@@ -257,8 +253,8 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		
 		
 		//String sessionId = "2212121212122112";
-		SelectionKey sk = null;//new Se;
 		NewClientSessionManager theClientSessionManages = null;
+		
 		if(sessionForSessionIdMap.containsKey(sessionId))
 		{
 			theClientSessionManages = sessionForSessionIdMap.get(sessionId);
@@ -270,21 +266,24 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
 		}
 		
+		System.out.println(0);
 		CharSequence cs = s;
 		RequestMessage request = null;
 		try {
 			request = theClientSessionManages.translateOODSSRequestJSON(s);
+			System.out.println(1);
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}//processStringJSON(incomingMessage, incomingUid)
+		System.out.println(2);
 		//Object cm = generateContextManager((String) sessionToken, sk, translationScope,
 		//		applicationObjectScope);
 		//System.out.println("Got RequestMessage type:"+request.getClassName().toString());
 		ResponseMessage response = theClientSessionManages.processRequest(request);
 		//System.out.println("Got ResponseMessage type:"+response.getClassName().toString());
 		
-		
+		System.out.println(3);
 		
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 		try {
@@ -293,7 +292,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+		System.out.println(4);
 		String pJSON = new String(outStream.toByteArray());
 		return pJSON;
 	
@@ -386,7 +385,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 						error(e.getMessage());
 
 						// invalidate the manager's key
-						this.getBackend().setPendingInvalidate(cm.getSocketKey(), true);
+						//this.getBackend().setPendingInvalidate(cm.getSocketKey(), true);
 
 						// remove the manager from the collection
 						contextIter.remove();
@@ -533,7 +532,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				this.clientSessionHandleMap.remove(newContextManager.getSessionId());
 			}
 
-			this.getBackend().debug("old session restored!");
+			///this.getBackend().debug("old session restored!");
 			return true;
 		}
 	}

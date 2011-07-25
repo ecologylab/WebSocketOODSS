@@ -80,7 +80,6 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		ClientConstants, WebSocketClientTokenListener
 {
 	protected String																									serverAddress;
-
 	protected final CharBuffer																				outgoingChars;
 
 	/**
@@ -225,7 +224,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
 			S objectRegistry, int maxMessageLengthChars) throws IOException
 	{
-		super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
+		//super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
 
 		//I know the above and much below is unnecessary glut.
 
@@ -373,9 +372,9 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			requestsQueue.add(request);
 		}
 
-		this.queueForWrite(this.thisSocket.keyFor(selector));
+	//	this.queueForWrite(this.thisSocket.keyFor(selector));
 
-		selector.wakeup();
+		//selector.wakeup();
 	}
 
 	public void disconnect(boolean waitForResponses)
@@ -438,7 +437,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		finally
 		{
 			nullOut();
-			stop();
+			///stop();
 		}
 	}
 
@@ -492,48 +491,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	 */
 	protected boolean createConnection()
 	{
-		try
-		{
-			// create the channel and connect it to the server
-			debug("creating socket!");
-			thisSocket = SocketChannel.open(new InetSocketAddress(serverAddress, portNumber));
-
-			// disable blocking
-			thisSocket.configureBlocking(false);
-
-			if (connected())
-			{
-				// register the channel for read operations, now that it is
-				// connected
-				super.openSelector();
-				thisSocket.register(selector, SelectionKey.OP_READ);
-			}
-		}
-		catch (BindException e)
-		{
-			debug("Couldnt create socket connection to server - " + serverAddress + ":" + portNumber
-					+ " - " + e);
-
-			nullOut();
-		}
-		catch (PortUnreachableException e)
-		{
-			debug("Server is alive, but has no daemon on portNumber " + portNumber + ": " + e);
-
-			nullOut();
-		}
-		catch (SocketException e)
-		{
-			debug("Server '" + serverAddress + "' unreachable: " + e);
-
-			nullOut();
-		}
-		catch (IOException e)
-		{
-			debug("Bad response from server: " + e);
-
-			nullOut();
-		}
+		
 
 		return connected();
 	}
@@ -828,22 +786,8 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		
 	}
 
-	@Override
-	public void start()
-	{
-		if (connected())
-		{
-			super.start();
-		}
-	}
 
-	@Override
-	public void stop()
-	{
-		debug("shutting down client listening thread.");
-
-		super.stop();
-	}
+	
 
 	/**
 	 * Returns the next request in the request queue and removes it from that queue. Sublcasses that
@@ -921,7 +865,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		}
 		else
 		{
-			this.stop();
+			//this.stop();
 		}
 	}
 
@@ -1033,7 +977,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 
 				outgoingChars.flip();
 
-				synchronized (encoder)
+/*				synchronized (encoder)
 				{
 					// XXX
 					// debug(outgoingChars.toString());
@@ -1047,6 +991,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 						// debug("sentBytes: "+sentBytes);
 					}
 				}
+				*/
 			}
 			if (this.sendCompressed)
 			{
@@ -1056,7 +1001,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		catch (ClosedChannelException e)
 		{
 			debug("connection severed; disconnecting and storing requests...");
-			setPendingInvalidate(incomingKey, false);
+			//setPendingInvalidate(incomingKey, false);
 		}
 		catch (BufferOverflowException e)
 		{
@@ -1096,10 +1041,14 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			zippingChars.limit(src.length());
 
 			zippingInBytes.clear();
+			
+			/*
 
 			encoder.reset();
 			encoder.encode(zippingChars, zippingInBytes, true);
 			encoder.flush(zippingInBytes);
+			*/
+
 
 			zippingInBytes.flip();
 
@@ -1287,218 +1236,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	{
 	}
 
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIONetworking#checkAndDropIdleKeys()
-	 */
-	@Override
-	protected void checkAndDropIdleKeys()
-	{
-
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIONetworking#invalidateKey(java.nio.channels.SelectionKey,
-	 *      boolean)
-	 */
-	@Override
-	protected void invalidateKey(SelectionKey key, boolean permanent)
-	{
-		debug("server disconnected...");
-
-		// clean up
-		this.invalidateKey((SocketChannel) key.channel());
-
-		if (!permanent)
-		{
-			Thread thread = new Thread(new Reconnecter());
-			thread.run();
-		}
-
-		this.notifyOfStatusChange(false);
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIONetworking#processReadData(java.lang.Object,
-	 *      java.nio.channels.SocketChannel, byte[], int)
-	 */
-	@Override
-	protected void processReadData(Object sessionToken, SelectionKey sk, ByteBuffer bytes,
-			int bytesRead) throws BadClientException
-	{
-		synchronized (incomingMessageBuffer)
-		{
-			try
-			{
-				incomingMessageBuffer.append(decoder.decode(bytes));
-
-				// look for HTTP header
-				while (incomingMessageBuffer.length() > 0)
-				{
-					if (endOfFirstHeader == -1)
-					{
-						endOfFirstHeader = this.parseHeader(startReadIndex, incomingMessageBuffer);
-					}
-
-					if (endOfFirstHeader == -1)
-					{ /*
-						 * no header yet; if it's too large, bad client; if it's not too large yet, just exit,
-						 * it'll get checked again when more data comes down the pipe
-						 */
-						if (incomingMessageBuffer.length() > ServerConstants.MAX_HTTP_HEADER_LENGTH)
-						{
-							// clear the buffer
-							BadClientException e = new BadClientException(((SocketChannel) sk.channel()).socket()
-									.getInetAddress().getHostAddress(), "Maximum HTTP header length exceeded. Read "
-									+ incomingMessageBuffer.length() + "/" + MAX_HTTP_HEADER_LENGTH);
-
-							incomingMessageBuffer.setLength(0);
-
-							throw e;
-						}
-
-						// next time around, start reading from where we left off this
-						// time
-						startReadIndex = incomingMessageBuffer.length();
-
-						break;
-					}
-					else
-					{ // we've read all of the header, and have it loaded into the
-						// map; now we can use it
-						if (contentLengthRemaining == -1)
-						{
-							try
-							{
-								// handle all header information here; delete it when
-								// done here
-								contentLengthRemaining = Integer
-										.parseInt(this.headerMap.get(CONTENT_LENGTH_STRING));
-								if (headerMap.containsKey(UNIQUE_IDENTIFIER_STRING))
-								{
-									uidOfCurrentMessage = Integer.parseInt(this.headerMap
-											.get(UNIQUE_IDENTIFIER_STRING));
-								}
-								contentEncoding = this.headerMap.get(HTTP_CONTENT_CODING);
-
-								// done with the header; delete it
-								incomingMessageBuffer.delete(0, endOfFirstHeader);
-								this.headerMap.clear();
-							}
-							catch (NumberFormatException e)
-							{
-								e.printStackTrace();
-								contentLengthRemaining = -1;
-							}
-							// next time we read the header (the next message), we need
-							// to start from the beginning
-							startReadIndex = 0;
-						}
-					}
-
-					/*
-					 * we have the end of the first header (otherwise we would have broken out earlier). If we
-					 * don't have the content length, something bad happened, because it should have been
-					 * read.
-					 */
-					if (contentLengthRemaining == -1)
-					{
-						/*
-						 * if we still don't have the remaining length, then there was a problem
-						 */
-						break;
-					}
-					else if (contentLengthRemaining > this.maxMessageLengthChars)
-					{
-						throw new BadClientException(((SocketChannel) sk.channel()).socket().getInetAddress()
-								.getHostAddress(), "Specified content length too large: " + contentLengthRemaining);
-					}
-
-					try
-					{
-						// see if the incoming buffer has enough characters to
-						// include the specified content length
-						if (incomingMessageBuffer.length() >= contentLengthRemaining)
-						{
-							firstMessageBuffer.append(incomingMessageBuffer.substring(0, contentLengthRemaining));
-
-							incomingMessageBuffer.delete(0, contentLengthRemaining);
-
-							// reset to do a new read on the next invocation
-							contentLengthRemaining = -1;
-							endOfFirstHeader = -1;
-						}
-						else
-						{
-							firstMessageBuffer.append(incomingMessageBuffer);
-
-							// indicate that we need to get more from the buffer in
-							// the next invocation
-							contentLengthRemaining -= incomingMessageBuffer.length();
-
-							incomingMessageBuffer.setLength(0);
-						}
-					}
-					catch (NullPointerException e)
-					{
-						e.printStackTrace();
-					}
-
-					if ((firstMessageBuffer.length() > 0) && (contentLengthRemaining == -1))
-					{ /*
-						 * if we've read a complete message, then contentLengthRemaining will be reset to -1
-						 */
-						// we got a response
-
-						if (contentEncoding != null)
-						{
-							if (contentEncoding.equals(HTTP_DEFLATE_ENCODING))
-							{
-								unCompress(firstMessageBuffer);
-							}
-							else
-							{
-								throw new BadClientException(((SocketChannel) sk.channel()).socket()
-										.getInetAddress().getHostAddress(), "Specified content encoding: "
-										+ contentEncoding + "not supported!");
-							}
-						}
-						if (!this.blockingRequestPending)
-						{
-							// we process the read data into a response message, let it
-							// perform its response, then dispose of
-							// the
-							// resulting MessageWithMetadata object
-							this.responsePool.release(processString(firstMessageBuffer.toString(),
-									uidOfCurrentMessage));
-						}
-						else
-						{
-							blockingResponsesQueue.add(processString(firstMessageBuffer.toString(),
-									uidOfCurrentMessage));
-							synchronized (this)
-							{
-								notify();
-							}
-						}
-
-						firstMessageBuffer.setLength(0);
-					}
-				}
-			}
-			catch (CharacterCodingException e1)
-			{
-				e1.printStackTrace();
-			}
-			catch (DataFormatException e)
-			{
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-		}
-	}
-
-	private CharSequence unCompress(StringBuilder firstMessageBuffer)
+		private CharSequence unCompress(StringBuilder firstMessageBuffer)
 			throws CharacterCodingException, DataFormatException
 	{
 		synchronized (zippingChars)
@@ -1510,11 +1248,11 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			zippingChars.limit(firstMessageBuffer.length());
 
 			zippingInBytes.clear();
-
+/*
 			encoder.reset();
 			encoder.encode(zippingChars, zippingInBytes, true);
 			encoder.flush(zippingInBytes);
-
+*/
 			zippingInBytes.flip();
 
 			inflater.reset();
@@ -1528,11 +1266,11 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			zippingOutBytes.limit(inflater.getTotalOut());
 
 			zippingChars.clear();
-
+/*
 			decoder.reset();
 			decoder.decode(zippingOutBytes, zippingChars, true);
 			decoder.flush(zippingChars);
-
+*/
 			zippingChars.flip();
 
 			firstMessageBuffer.setLength(0);
@@ -1541,15 +1279,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		}
 	}
 
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIONetworking#removeBadConnections(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void removeBadConnections(SelectionKey key)
-	{
-		// TODO Auto-generated method stub
 
-	}
 
 	/**
 	 * Increments the internal tracker of the next UID, and returns the current one.
@@ -1675,7 +1405,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	 */
 	public void waitForConnect()
 	{
-		System.out.println("Waiting for a server on port " + portNumber);
+		System.out.println("Waiting for a server on port "); //+ portNumber);
 		while (!connect())
 		{
 			// try again soon
@@ -1828,43 +1558,6 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 			*/
 	}
 	
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIOCore#acceptReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void acceptReady(SelectionKey key)
-	{
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIOCore#connectReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void connectReady(SelectionKey key)
-	{
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIOCore#readFinished(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void readFinished(SelectionKey key)
-	{
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.NIOCore#acceptFinished(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	public void acceptFinished(SelectionKey key)
-	{
-	}
-
-	@Override
-	protected boolean handleInvalidate(SelectionKey key, boolean forcePermanent)
-	{
-		return false;
-	}
 
 	public int getMaxMessageLengthChars()
 	{
@@ -1873,10 +1566,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 
 	public void terminate()
 	{
-		for (SelectionKey key : this.selector.keys())
-		{
-			this.setPendingInvalidate(key, false);
-		}
+
 
 		nullOut();
 	}
@@ -2027,5 +1717,18 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		// TODO Auto-generated method stub
 		System.out.println("TestWebSocketClient:processToken");
 		////aToken.
+	}
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	protected void processReadData(Object sessionToken, SelectionKey sk,
+			ByteBuffer bytes, int bytesRead) throws BadClientException {
+		// TODO Auto-generated method stub
+		
 	}
 }

@@ -18,6 +18,7 @@ import java.util.Queue;
 import javax.naming.OperationNotSupportedException;
 
 import ecologylab.collections.Scope;
+import ecologylab.generic.Debug;
 import ecologylab.io.ByteBufferPool;
 import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.exceptions.ClientOfflineException;
@@ -30,12 +31,11 @@ import ecologylab.serialization.TranslationScope;
  * 
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
  */
-public abstract class AIONetworking<S extends Scope> extends AIOCore
+public abstract class AIONetworking<S extends Scope> extends Debug //extends AIOCore
 {
 	/**
 	 * ByteBuffer that holds all incoming communication temporarily, immediately after it is read.
 	 */
-	private final ByteBuffer											readBuffer;
 
 	/**
 	 * Maps SocketChannels (connections) to their write Queues of ByteBuffers. Whenever a
@@ -58,61 +58,6 @@ public abstract class AIONetworking<S extends Scope> extends AIOCore
 
 	protected ByteBufferPool											byteBufferPool;
 
-	protected CharsetDecoder											decoder					= CHARSET.newDecoder();
-
-	protected CharsetEncoder											encoder					= CHARSET.newEncoder();
-
-	/**
-	 * Creates a Services Server Base. Sets internal variables, but does not bind the port. Port
-	 * binding is to be handled by sublcasses.
-	 * 
-	 * @param portNumber
-	 *          the port number to use for communicating.
-	 * @param translationScope
-	 *          the TranslationSpace to use for incoming messages; if this is null, uses
-	 *          DefaultServicesTranslations instead.
-	 * @param objectRegistry
-	 *          Provides a context for request processing; if this is null, creates a new
-	 *          ObjectRegistry.
-	 * @throws IOException
-	 *           if an I/O error occurs while trying to open a Selector from the system.
-	 */
-	protected AIONetworking(String networkIdentifier, int portNumber,
-			TranslationScope translationScope, S objectRegistry, int maxMessageSizeChars)
-			throws IOException
-	{
-		super(networkIdentifier, portNumber);
-
-		if (translationScope == null)
-			translationScope = DefaultServicesTranslations.get();
-
-		this.translationScope = translationScope;
-
-		this.objectRegistry = objectRegistry;
-
-		readBuffer = ByteBuffer.allocateDirect((int) Math.ceil(maxMessageSizeChars
-				* encoder.maxBytesPerChar()));
-		this.byteBufferPool = new ByteBufferPool(10, 10, (int) Math.ceil(maxMessageSizeChars
-				* encoder.maxBytesPerChar()));
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#readReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void readReady(SelectionKey key) throws ClientOfflineException, BadClientException
-	{
-		readKey(key);
-	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.impl.AIOCore#writeReady(java.nio.channels.SelectionKey)
-	 */
-	@Override
-	protected void writeReady(SelectionKey key) throws IOException
-	{
-		writeKey(key);
-	}
 
 	/**
 	 * Queue up bytes to send on a particular socket. This method is typically called by some outside
@@ -137,53 +82,11 @@ public abstract class AIONetworking<S extends Scope> extends AIOCore
 			dataQueue.offer(data);
 		}
 
-		this.queueForWrite(socketKey);
+	//	this.queueForWrite(socketKey);
 
-		selector.wakeup();
 	}
 
-	/**
-	 * Reads all the data from the key into the readBuffer, then pushes that information to the action
-	 * processor for processing.
-	 * 
-	 * @param key
-	 * @throws BadClientException
-	 */
-	private final void readKey(SelectionKey key) throws BadClientException, ClientOfflineException
-	{
-		SocketChannel sc = (SocketChannel) key.channel();
-		int bytesRead;
-
-		this.readBuffer.clear();
-
-		// read
-		try
-		{
-			bytesRead = sc.read(readBuffer);
-		}
-		catch (BufferOverflowException e)
-		{
-			throw new BadClientException(sc.socket().getInetAddress().getHostAddress(),
-					"Client overflowed the buffer.");
-		}
-		catch (IOException e)
-		{ // error trying to read; client disconnected
-			throw new ClientOfflineException("Client forcibly closed connection.");
-		}
-
-		if (bytesRead == -1)
-		{ // connection closed cleanly
-			throw new ClientOfflineException("Client closed connection cleanly.");
-		}
-		else if (bytesRead > 0)
-		{
-			readBuffer.flip();
-
-			// get the session key that was formed at accept(), and send it over as
-			// the sessionId
-			this.processReadData(key.attachment(), key, readBuffer, bytesRead);
-		}
-	}
+ 
 
 	/**
 	 * Writes the bytes from pendingWrites that belong to key.
