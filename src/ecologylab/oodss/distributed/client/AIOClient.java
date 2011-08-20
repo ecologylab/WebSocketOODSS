@@ -27,12 +27,14 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
+
 import org.jwebsocket.api.WebSocketClientEvent;
 import org.jwebsocket.api.WebSocketClientTokenListener;
 import org.jwebsocket.api.WebSocketPacket;
 import org.jwebsocket.client.token.BaseTokenClient;
 import org.jwebsocket.kit.WebSocketException;
 import org.jwebsocket.token.Token;
+
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.Generic;
@@ -228,6 +230,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 
 		//I know the above and much below is unnecessary glut.
 
+		this.translationScope = messageSpace;
 		this.maxMessageLengthChars = maxMessageLengthChars;
 
 		this.outgoingChars = CharBuffer.allocate(maxMessageLengthChars);
@@ -246,6 +249,8 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		this.compressedMessageBuffer = ByteBuffer.allocate(maxMessageLengthChars);
 
 		this.serverAddress = serverAddress;
+		
+	
 		initializeWebSocketClient();//this is called before start()
 	}
 
@@ -1304,6 +1309,9 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	protected ServiceMessage translateJSONStringToServiceMessage(
 			String messageString) throws SIMPLTranslationException
 	{
+		System.out.println("Derp");
+		System.out.println("Service message is:"+messageString);
+		
 		ServiceMessage resp = (ServiceMessage) this.translationScope
 				.deserializeCharSequence(messageString,FORMAT.JSON);
 

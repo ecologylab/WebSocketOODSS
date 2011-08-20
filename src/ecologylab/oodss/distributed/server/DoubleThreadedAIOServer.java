@@ -19,6 +19,7 @@ import java.util.Iterator;
 
 import org.jwebsocket.api.WebSocketConnector;
 import org.jwebsocket.api.WebSocketServer;
+import org.jwebsocket.console.MyListener;
 import org.jwebsocket.kit.RawPacket;
 
 import ecologylab.collections.Scope;
@@ -55,11 +56,14 @@ import ecologylab.serialization.ElementState.FORMAT;
  * @author Zachary O. Toups (zach@ecologylab.net)
  */
 public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<S> implements
-		ServerConstants
-{
+		ServerConstants, ServerMessages
+{		
+	
 	
 	public WebSocketServer webSocketServer;
 	
+
+//need to replace blah
     public void blah(WebSocketServer webSocketServer2)
     {
     	webSocketServer = webSocketServer2;
@@ -243,7 +247,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 
 	////////
 	HashMap<String, NewClientSessionManager> sessionForSessionIdMap;
-	
+	@Override
 	public String getAPushFromWebSocket(String s, String sessionId)
 	{
 		//should read more information about where this is coming from and add it to a queue or something...
@@ -581,5 +585,11 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	public StringBuilderPool getSharedStringBuilderPool() 
 	{
 		return stringBuilderPool;
+	}
+
+	@Override
+	public void putServerObject(Object o) {
+		// TODO Auto-generated method stub
+		webSocketServer = (WebSocketServer) o;
 	}
 }

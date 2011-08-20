@@ -8,6 +8,7 @@ import java.net.BindException;
 import java.util.Iterator;
 
 import org.jwebsocket.config.JWebSocketServerConstants;
+import org.jwebsocket.console.JWebSocketServerLight;
 
 import quiz.JoinGameRequest;
 import quiz.QuizGameServer;
@@ -44,8 +45,9 @@ public class TestServer
 				new Scope(), 
 				100000, 
 				100000);
-		
 		s.start();
+		
+		JWebSocketServerLight.startWebsocketServer(s);
 		
 	}
 	
