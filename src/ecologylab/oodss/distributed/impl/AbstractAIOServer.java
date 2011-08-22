@@ -11,7 +11,6 @@ import java.nio.channels.SelectionKey;
 import ecologylab.collections.Scope;
 import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
-import ecologylab.oodss.distributed.server.AIOServerDataReader;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.serialization.TranslationScope;
@@ -23,9 +22,9 @@ import ecologylab.serialization.TranslationScope;
  * @author Zachary O. Toups (zach@ecologylab.net)
  */
 public abstract class AbstractAIOServer<S extends Scope> extends Manager implements
-		AIOServerDataReader, Runnable, SessionObjects
+		 Runnable, SessionObjects
 {
-	private AIOServerIOThread		backend;
+	//private AIOServerIOThread		backend;
 
 	protected TranslationScope	translationScope;
 
@@ -48,16 +47,16 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
-		backend = this.generateBackend(portNumber, inetAddress, composeTranslations(portNumber,
-				inetAddress[0], requestTranslationSpace), objectRegistry, idleConnectionTimeout,
-				maxMessageLength);
+		//backend = this.generateBackend(portNumber, inetAddress, composeTranslations(portNumber,
+		//		inetAddress[0], requestTranslationSpace), objectRegistry, idleConnectionTimeout,
+		//		maxMessageLength);
 
 		debug("setting up NIO Server...");
 
 		// we get these from the backend, because it ensures that they are
 		// configured if they are passed in null
-		this.translationScope = backend.translationScope;
-		this.applicationObjectScope = (S) backend.objectRegistry;
+		this.translationScope = translationScope;//backend.translationScope; //could break something... meh
+		this.applicationObjectScope = (S) objectRegistry;// backend.objectRegistry;
 
 		//this.applicationObjectScope.put(MAIN_START_AND_STOPPABLE, this);
 		//this.applicationObjectScope.put(MAIN_SHUTDOWNABLE, this);
@@ -101,13 +100,14 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
 	}
 
+	/*
 	protected AIOServerIOThread generateBackend(int portNumber, InetAddress[] inetAddresses,
 			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws BindException, IOException
 	{
 		return AIOServerIOThread.getInstance(portNumber, inetAddresses, this, requestTranslationSpace,
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
-	}
+	}*/
 
 	protected abstract NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScope, Scope globalScope);
@@ -117,16 +117,16 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	 */
 	public void start()
 	{
-		try
-		{
+		//try
+		//{
 			//backend.openSelector();
-			backend.registerAcceptWithSelector();
+			//backend.registerAcceptWithSelector();
 			//backend.start();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		//}
+		//catch (IOException e)
+		//{
+		//	e.printStackTrace();
+		//}
 	}
 
 	/**
@@ -140,10 +140,10 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	/**
 	 * @return the backend
 	 */
-	public AIOServerIOThread getBackend()
-	{
-		return backend;
-	}
+	//public AIOServerIOThread getBackend()
+	//{
+	//	return null;//backend;
+	//}
 
 	/**
 	 * @return the global scope for this server

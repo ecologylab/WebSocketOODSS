@@ -6,10 +6,8 @@ package ecologylab.oodss.server.clientsessionmanager;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.util.HashMap;
@@ -25,11 +23,8 @@ import ecologylab.collections.Scope;
 import ecologylab.generic.StringTools;
 import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.common.SessionObjects;
-import ecologylab.oodss.distributed.impl.AIOServerIOThread;
 import ecologylab.oodss.distributed.impl.MessageWithMetadata;
 import ecologylab.oodss.distributed.impl.MessageWithMetadataPool;
-import ecologylab.oodss.distributed.impl.NIOServerIOThread;
-import ecologylab.oodss.distributed.server.AIOServerProcessor;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
@@ -38,6 +33,7 @@ import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.serialization.ElementState.FORMAT;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
+
 
 /**
  * The base class for all ContextManagers, objects that track the state and respond to clients on a
@@ -66,14 +62,17 @@ import ecologylab.serialization.TranslationScope;
 public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBaseSessionManager<S>
 		implements ServerConstants
 {
+
 	/**
 	 * Stores the key-value pairings from a parsed HTTP-like header on an incoming message.
 	 */
+
+	
 	protected final HashMap<String, String>															headerMap									= new HashMap<String, String>();
 
 	protected int																												startReadIndex						= 0;
 
-	/** Stores outgoing header character data. */
+	/** Stores outgoing header character data. *///
 	protected final StringBuilder																				headerBufOutgoing					= new StringBuilder(
 																																																		MAX_HTTP_HEADER_LENGTH);
 
@@ -84,7 +83,7 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 	 * The network communicator that will handle all the reading and writing for the socket associated
 	 * with this ContextManager
 	 */
-	protected AIOServerIOThread																					server;
+	//protected AIOServerIOThread																					server;
 
 	/**
 	 * The maximum message length allowed for clients that connect to this session manager. Note that
@@ -178,13 +177,13 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 	 * @param translationScope
 	 * @param registry
 	 */
-	public NewTCPClientSessionManager(String sessionId, int maxMessageSizeIn, AIOServerIOThread server2,
-			AIOServerProcessor frontend, SelectionKey socket, TranslationScope translationScope,
+	public NewTCPClientSessionManager(String sessionId, int maxMessageSizeIn,/* AIOServerIOThread server2
+			AIOServerProcessor frontend,*/ SelectionKey socket, TranslationScope translationScope,
 			Scope<?> baseScope)
 	{
-		super(sessionId, frontend, socket, baseScope);
+		super(sessionId, /*frontend,*/ socket, baseScope);
 
-		this.server = server2;
+	//	this.server = server2;
 		this.translationScope = translationScope;
 
 		// set up session id
@@ -192,265 +191,12 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 
 		this.maxMessageSize = maxMessageSizeIn;
 
-		this.handle = new NewSessionHandle(this);
+		//this.handle = new SessionHandle(this);
 		this.localScope.put(SessionObjects.SESSION_HANDLE, this.handle);
 
 		this.prepareBuffers(headerBufOutgoing);
 	}
 
-	/**
-	 * Extracts messages from the given CharBuffer, using HTTP-like headers, converting them into
-	 * RequestMessage instances, then enqueues those instances.
-	 * 
-	 * enqueueStringMessage will normally be called repeatedly, as new data comes in from a client. It
-	 * will automatically parse messages that are split up over multiple reads, and will handle
-	 * multiple messages in one read, if necessary.
-	 * 
-	 * @param message
-	 *          the CharBuffer containing one or more messages, or pieces of messages.
-	 */
-	public synchronized final void processIncomingSequenceBufToQueue(CharBuffer incomingSequenceBuf)
-			throws CharacterCodingException, BadClientException
-	{
-		// debug("incoming: " + incomingSequenceBuf);
-
-		StringBuilder msgBufIncoming = this.frontend.getSharedStringBuilderPool().acquire();
-
-		msgBufIncoming.append(incomingSequenceBuf);
-
-		try
-		{
-			// look for HTTP header
-			while (msgBufIncoming.length() > 0)
-			{
-				if (endOfFirstHeader == -1)
-				{
-					endOfFirstHeader = this.parseHeader(startReadIndex, msgBufIncoming);
-				}
-
-				if (endOfFirstHeader == -1)
-				{ /*
-					 * no header yet; if it's too large, bad client; if it's not too large yet, just exit,
-					 * it'll get checked again when more data comes down the pipe
-					 */
-					if (msgBufIncoming.length() > ServerConstants.MAX_HTTP_HEADER_LENGTH)
-					{
-						// clear the buffer
-						BadClientException e = new BadClientException(
-								((SocketChannel) this.socketKey.channel()).socket().getInetAddress()
-										.getHostAddress(), "Maximum HTTP header length exceeded. Read "
-										+ msgBufIncoming.length() + "/" + MAX_HTTP_HEADER_LENGTH);
-
-						msgBufIncoming.setLength(0);
-
-						throw e;
-					}
-
-					// next time around, start reading from where we left off this
-					// time
-					startReadIndex = msgBufIncoming.length();
-
-					break;
-				}
-				else
-				{ // we've read all of the header, and have it loaded into
-					// the map;
-					// now we can use it
-					if (contentLengthRemaining == -1)
-					{
-						try
-						{
-							// handle all header information here; delete it when
-							// done
-							// here
-							String contentLengthString = this.headerMap.get(CONTENT_LENGTH_STRING);
-							contentLengthRemaining = (contentLengthString != null) ? Integer
-									.parseInt(contentLengthString) : 0;
-
-							String uidString = this.headerMap.get(UNIQUE_IDENTIFIER_STRING);
-							contentUid = (uidString != null) ? Long.parseLong(uidString) : 0;
-
-							this.contentEncoding = this.headerMap.get(HTTP_CONTENT_CODING);
-
-							String encodings = this.headerMap.get(HTTP_ACCEPT_ENCODING);
-							if (encodings != null)
-							{
-								String[] encodingList = encodings.split(",");
-
-								for (String encoding : encodingList)
-								{
-									this.availableEncodings.add(encoding);
-								}
-							}
-
-							// done with the header text; delete it; header values
-							// will
-							// be retained for later processing by subclasses
-							msgBufIncoming.delete(0, endOfFirstHeader);
-						}
-						catch (NumberFormatException e)
-						{
-							e.printStackTrace();
-							contentLengthRemaining = -1;
-						}
-						// next time we read the header (the next message), we need
-						// to
-						// start from the beginning
-						startReadIndex = 0;
-					}
-				}
-
-				/*
-				 * we have the end of the header (otherwise we would have broken out earlier). If we don't
-				 * have the content length, something bad happened, because it should have been read.
-				 */
-				if (contentLengthRemaining == -1)
-				{
-					/*
-					 * if we still don't have the remaining length, then there was a problem
-					 */
-					break;
-				}
-				else if (contentLengthRemaining > maxMessageSize)
-				{
-					throw new BadClientException(((SocketChannel) this.socketKey.channel()).socket()
-							.getInetAddress().getHostAddress(), "Specified content length too large: "
-							+ contentLengthRemaining);
-				}
-
-				try
-				{
-					// see if the incoming buffer has enough characters to
-					// include the specified content length
-					if (persistentMessageBuffer == null)
-					{
-						persistentMessageBuffer = this.frontend.getSharedStringBuilderPool().acquire();
-					}
-					if (msgBufIncoming.length() >= contentLengthRemaining)
-					{
-						persistentMessageBuffer.append(msgBufIncoming.substring(0, contentLengthRemaining));
-
-						msgBufIncoming.delete(0, contentLengthRemaining);
-
-						// reset to do a new read on the next invocation
-						contentLengthRemaining = -1;
-						endOfFirstHeader = -1;
-					}
-					else
-					{
-						persistentMessageBuffer.append(msgBufIncoming);
-
-						// indicate that we need to get more from the buffer in
-						// the next invocation
-						contentLengthRemaining -= msgBufIncoming.length();
-
-						msgBufIncoming.setLength(0);
-					}
-				}
-				catch (NullPointerException e)
-				{
-					e.printStackTrace();
-				}
-
-				if ((contentLengthRemaining == -1))
-				{ /*
-					 * if we've read a complete message, then contentLengthRemaining will be reset to -1
-					 */
-					try
-					{
-						if (this.contentEncoding == null || this.contentEncoding.equals("identity"))
-						{
-							processString(persistentMessageBuffer, contentUid);
-						}
-						else if (contentEncoding.equals(HTTP_DEFLATE_ENCODING))
-						{
-							try
-							{
-								processString(this.unCompress(persistentMessageBuffer), contentUid);
-							}
-							catch (DataFormatException e)
-							{
-								throw new BadClientException(((SocketChannel) this.socketKey.channel()).socket()
-										.getInetAddress().getHostAddress(), "Content was not encoded properly: "
-										+ e.getMessage());
-							}
-						}
-						else
-						{
-							throw new BadClientException(((SocketChannel) this.socketKey.channel()).socket()
-									.getInetAddress().getHostAddress(), "Content encoding: " + contentEncoding
-									+ " not supported!");
-						}
-					}
-					finally
-					{
-						// clean up: clear the message buffer and the header values
-						this.frontend.getSharedStringBuilderPool().release(persistentMessageBuffer);
-						persistentMessageBuffer = null;
-
-						this.headerMap.clear();
-						StringTools.clear(this.startLine);
-					}
-				}
-			}
-		}
-		finally
-		{
-			this.frontend.getSharedStringBuilderPool().release(msgBufIncoming);
-		}
-	}
-
-	private CharSequence unCompress(StringBuilder firstMessageBuffer)
-			throws CharacterCodingException, DataFormatException
-	{
-		CharBuffer zippingChars = this.frontend.getSharedCharBufferPool().acquire();
-		ByteBuffer zippingInBytes = this.frontend.getSharedByteBufferPool().acquire();
-
-		zippingChars.clear();
-
-		firstMessageBuffer.getChars(0, firstMessageBuffer.length(), zippingChars.array(), 0);
-		zippingChars.position(0);
-		zippingChars.limit(firstMessageBuffer.length());
-
-		zippingInBytes.clear();
-
-		encoder.reset();
-		encoder.encode(zippingChars, zippingInBytes, true);
-		encoder.flush(zippingInBytes);
-
-		zippingInBytes.flip();
-
-		inflater.reset();
-		inflater.setInput(zippingInBytes.array(), zippingInBytes.position(), zippingInBytes.limit());
-
-		ByteBuffer zippingOutBytes = this.frontend.getSharedByteBufferPool().acquire();
-
-		zippingOutBytes.clear();
-		inflater.inflate(zippingOutBytes.array(), zippingOutBytes.position(), zippingOutBytes.limit());
-
-		zippingOutBytes.position(0);
-		zippingOutBytes.limit(inflater.getTotalOut());
-		this.frontend.getSharedByteBufferPool().release(zippingInBytes);
-
-		zippingChars.clear();
-
-		decoder.reset();
-		decoder.decode(zippingOutBytes, zippingChars, true);
-		decoder.flush(zippingChars);
-
-		this.frontend.getSharedByteBufferPool().release(zippingOutBytes);
-
-		zippingChars.flip();
-
-		firstMessageBuffer.setLength(0);
-
-		firstMessageBuffer.append(zippingChars.array(), 0, zippingChars.limit());
-
-		this.frontend.getSharedCharBufferPool().release(zippingChars);
-
-		return firstMessageBuffer;
-
-	}
 
 	/**
 	 * Calls processRequest(RequestMessage) on each queued message as they are acquired through
@@ -786,7 +532,8 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 		if (response != null)
 		{ // if the response is null, then we do
 			// nothing else
-			sendResponseToClient(requestWithMetadata, response, request);
+			//sendResponseToClient(requestWithMetadata, response, request);
+			System.out.println("HEEURRRRRRRRRRR I SHLOUD HAVE USED sendResponseToClient but did not hurrr!!!");
 		}
 		else
 		{
@@ -819,113 +566,6 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 		return response;
 	}
 
-	private synchronized void sendResponseToClient(
-			MessageWithMetadata<RequestMessage, Object> requestWithMetadata, ResponseMessage response,
-			RequestMessage request)
-	{
-
-		StringBuilder msgBufOutgoing = this.frontend.getSharedStringBuilderPool().acquire();
-
-		try
-		{
-			// setup outgoingMessageBuffer
-			this.translateResponseMessageToStringBufferContents(request, response, msgBufOutgoing);
-		}
-		catch (SIMPLTranslationException e1)
-		{
-			e1.printStackTrace();
-		}
-
-		try
-		{
-			ByteBuffer compressedMessageBuffer = null;
-			CharBuffer outgoingChars = this.frontend.getSharedCharBufferPool().acquire();
-
-			boolean usingCompression = this.availableEncodings.contains(HTTP_DEFLATE_ENCODING);
-			/*
-			 * If Compressing must know the length of the data being sent so must compress here
-			 */
-			if (usingCompression)
-			{
-				compressedMessageBuffer = this.frontend.getSharedByteBufferPool().acquire();
-				compressedMessageBuffer.clear();
-				this.compress(msgBufOutgoing, compressedMessageBuffer);
-				compressedMessageBuffer.flip();
-				this.clearOutgoingMessageBuffer(msgBufOutgoing);
-			}
-
-			this.clearOutgoingMessageHeaderBuffer(headerBufOutgoing);
-
-			// setup outgoingMessageHeaderBuffer
-			this.createHeader(
-					(usingCompression) ? compressedMessageBuffer.limit() : msgBufOutgoing.length(),
-					headerBufOutgoing, request, response, requestWithMetadata.getUid());
-
-			if (usingCompression)
-			{
-				headerBufOutgoing.append(HTTP_HEADER_LINE_DELIMITER);
-				headerBufOutgoing.append(HTTP_CONTENT_CODING);
-				headerBufOutgoing.append(":");
-				headerBufOutgoing.append(HTTP_DEFLATE_ENCODING);
-			}
-
-			headerBufOutgoing.append(HTTP_HEADER_TERMINATOR);
-
-			// move the characters from the outgoing buffers into
-			// outgoingChars using bulk get and put methods
-			outgoingChars.clear();
-
-			headerBufOutgoing.getChars(0, headerBufOutgoing.length(), outgoingChars.array(), 0);
-
-			if (!usingCompression)
-			{
-				msgBufOutgoing.getChars(0, msgBufOutgoing.length(), outgoingChars.array(),
-						headerBufOutgoing.length());
-
-				outgoingChars.limit(headerBufOutgoing.length() + msgBufOutgoing.length());
-
-				this.clearOutgoingMessageBuffer(msgBufOutgoing);
-			}
-			else
-			{
-				outgoingChars.limit(headerBufOutgoing.length());
-			}
-
-			outgoingChars.position(0);
-
-			ByteBuffer outgoingBuffer = this.server.acquireByteBufferFromPool();
-
-			synchronized (encoder)
-			{
-				encoder.reset();
-
-				encoder.encode(outgoingChars, outgoingBuffer, true);
-
-				encoder.flush(outgoingBuffer);
-			}
-
-			this.frontend.getSharedCharBufferPool().release(outgoingChars);
-
-			if (usingCompression)
-			{
-				outgoingBuffer.put(compressedMessageBuffer);
-				this.frontend.getSharedByteBufferPool().release(compressedMessageBuffer);
-			}
-
-			server.enqueueBytesForWriting(this.socketKey, outgoingBuffer);
-		}
-		catch (DataFormatException e)
-		{
-			debug("Failed to compress response!");
-			e.printStackTrace();
-		}
-		finally
-		{
-			this.frontend.getSharedStringBuilderPool().release(msgBufOutgoing);
-		}
-
-		// debug("...done ("+(System.currentTimeMillis()-currentTime)+"ms)");
-	}
 
 	public synchronized void sendUpdateToClient(UpdateMessage<?> update)
 	{
@@ -933,143 +573,13 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 		
 	}
 	
-	public synchronized void sendUpdateToClientOld(UpdateMessage<?> update)
-	{
-		StringBuilder msgBufOutgoing = this.frontend.getSharedStringBuilderPool().acquire();
-
-		if (this.isInvalidating())
-		{
-			return;
-		}
-		try
-		{
-			// setup outgoingMessageBuffer
-			update.serialize(msgBufOutgoing);
-		}
-		catch (SIMPLTranslationException e1)
-		{
-			e1.printStackTrace();
-		}
-
-		try
-		{
-			ByteBuffer compressedMessageBuffer = null;
-			CharBuffer outgoingChars = this.frontend.getSharedCharBufferPool().acquire();
-
-			boolean usingCompression = this.availableEncodings.contains(HTTP_DEFLATE_ENCODING);
-			/*
-			 * If Compressing must know the length of the data being sent so must compress here
-			 */
-			if (usingCompression)
-			{
-				compressedMessageBuffer = this.frontend.getSharedByteBufferPool().acquire();
-
-				compressedMessageBuffer.clear();
-				this.compress(msgBufOutgoing, compressedMessageBuffer);
-				compressedMessageBuffer.flip();
-				this.clearOutgoingMessageBuffer(msgBufOutgoing);
-			}
-
-			this.clearOutgoingMessageHeaderBuffer(headerBufOutgoing);
-
-			// setup outgoingMessageHeaderBuffer
-			this.makeUpdateHeader(
-					(usingCompression) ? compressedMessageBuffer.limit() : msgBufOutgoing.length(),
-					headerBufOutgoing, update);
-
-			if (usingCompression)
-			{
-				headerBufOutgoing.append(HTTP_HEADER_LINE_DELIMITER);
-				headerBufOutgoing.append(HTTP_CONTENT_CODING);
-				headerBufOutgoing.append(":");
-				headerBufOutgoing.append(HTTP_DEFLATE_ENCODING);
-			}
-
-			headerBufOutgoing.append(HTTP_HEADER_TERMINATOR);
-
-			// move the characters from the outgoing buffers into
-			// outgoingChars using bulk get and put methods
-			outgoingChars.clear();
-
-			headerBufOutgoing.getChars(0, headerBufOutgoing.length(), outgoingChars.array(), 0);
-
-			if (!usingCompression)
-			{
-				msgBufOutgoing.getChars(0, msgBufOutgoing.length(), outgoingChars.array(),
-						headerBufOutgoing.length());
-
-				outgoingChars.limit(headerBufOutgoing.length() + msgBufOutgoing.length());
-
-				this.clearOutgoingMessageBuffer(msgBufOutgoing);
-			}
-			else
-			{
-				outgoingChars.limit(headerBufOutgoing.length());
-			}
-
-			outgoingChars.position(0);
-
-			ByteBuffer outgoingBuffer = this.server.acquireByteBufferFromPool();
-
-			synchronized (encoder)
-			{
-				encoder.reset();
-
-				encoder.encode(outgoingChars, outgoingBuffer, true);
-
-				encoder.flush(outgoingBuffer);
-			}
-
-			this.frontend.getSharedCharBufferPool().release(outgoingChars);
-
-			if (usingCompression)
-			{
-				outgoingBuffer.put(compressedMessageBuffer);
-				this.frontend.getSharedByteBufferPool().release(compressedMessageBuffer);
-			}
-
-			server.enqueueBytesForWriting(this.socketKey, outgoingBuffer);
-		}
-		catch (DataFormatException e)
-		{
-			debug("Failed to compress update!");
-			e.printStackTrace();
-		}
-		finally
-		{
-			this.frontend.getSharedStringBuilderPool().release(msgBufOutgoing);
-		}
-	}
+	
 
 	private void compress(StringBuilder src, ByteBuffer dest) throws DataFormatException
 	{
-		CharBuffer zippingChars = this.frontend.getSharedCharBufferPool().acquire();
-		zippingChars.clear();
+		
 
-		src.getChars(0, src.length(), zippingChars.array(), 0);
-		zippingChars.position(0);
-		zippingChars.limit(src.length());
-
-		ByteBuffer zippingInBytes = this.frontend.getSharedByteBufferPool().acquire();
-		zippingInBytes.clear();
-
-		encoder.reset();
-		encoder.encode(zippingChars, zippingInBytes, true);
-		encoder.flush(zippingInBytes);
-
-		this.frontend.getSharedCharBufferPool().release(zippingChars);
-
-		zippingInBytes.flip();
-
-		deflater.reset();
-		deflater.setInput(zippingInBytes.array(), zippingInBytes.position(), zippingInBytes.limit());
-		deflater.finish();
-
-		this.frontend.getSharedByteBufferPool().release(zippingInBytes);
-
-		dest.position(dest.position()
-				+ deflater.deflate(dest.array(), dest.position(), dest.remaining()));
-
+	
 	}
 
 	
@@ -1227,7 +737,7 @@ public abstract class NewTCPClientSessionManager<S extends Scope> extends NewBas
 
 	}
 
-	public NewSessionHandle getHandle()
+	public SessionHandle getHandle()
 	{
 		return handle;
 	}

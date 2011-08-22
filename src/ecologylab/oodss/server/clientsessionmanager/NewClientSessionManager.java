@@ -4,8 +4,7 @@ import java.nio.channels.SelectionKey;
 
 import ecologylab.collections.Scope;
 import ecologylab.oodss.distributed.common.ServerConstants;
-import ecologylab.oodss.distributed.impl.AIOServerIOThread;
-import ecologylab.oodss.distributed.server.AIOServerProcessor;
+//import ecologylab.oodss.distributed.impl.AIOServerIOThread;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
@@ -38,11 +37,11 @@ public class NewClientSessionManager<S extends Scope> extends NewTCPClientSessio
 	 * @param translationScope
 	 * @param registry
 	 */
-	public NewClientSessionManager(String sessionId, int maxPacketSize, AIOServerIOThread server,
-			AIOServerProcessor frontend, SelectionKey socketKey, TranslationScope translationScope,
+	public NewClientSessionManager(String sessionId, int maxPacketSize/*,AIOServerIOThread server,
+			AIOServerProcessor frontend*/, SelectionKey socketKey, TranslationScope translationScope,
 			Scope<?> registry)
 	{
-		super(sessionId, maxPacketSize, server, frontend, socketKey, translationScope, registry);
+		super(sessionId, maxPacketSize, /*server, frontend*/ socketKey, translationScope, registry);
 	}
 
 	/**

@@ -19,6 +19,7 @@ import java.util.Iterator;
 
 import org.jwebsocket.api.WebSocketConnector;
 import org.jwebsocket.api.WebSocketServer;
+import org.jwebsocket.console.JWebSocketServerLight;
 import org.jwebsocket.console.MyListener;
 import org.jwebsocket.kit.RawPacket;
 
@@ -31,14 +32,14 @@ import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.distributed.impl.AbstractAIOServer;
-import ecologylab.oodss.distributed.impl.AIOServerIOThread;
+
 import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
-import ecologylab.oodss.server.clientsessionmanager.NewSessionHandle;
+import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
@@ -157,7 +158,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	/**
 	 * Map in which keys are sessionTokens, and values are associated SessionHandles
 	 */
-	private HashMapArrayList<Object, NewSessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, NewSessionHandle>();
+	private HashMapArrayList<Object, SessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, SessionHandle>();
 
 	private static final Charset																		ENCODED_CHARSET					= Charset
 																																															.forName(CHARACTER_ENCODING);
@@ -265,7 +266,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		}
 		else
 		{
-			theClientSessionManages = new NewClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, null,
+			theClientSessionManages = new NewClientSessionManager(sessionId, maxMessageSize, /*this.getBackend(), this,*/ null,
 					this.translationScope, this.applicationObjectScope );
 			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
 		}
@@ -305,7 +306,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	
 	////////
 	
-	public void processRead(Object sessionToken, AIOServerIOThread base, SelectionKey sk,
+	public void processRead(Object sessionToken, /*AIOServerIOThread base,*/ SelectionKey sk,
 			ByteBuffer bs, int bytesRead) throws BadClientException
 	{
 		if (bytesRead > 0)
@@ -323,14 +324,14 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 					clientSessionManagerMap.put(sessionToken, cm);
 					clientSessionHandleMap.put(sessionToken, cm.getHandle());
 				}
-
+/*
 				try
 				{
 					CharBuffer buf = this.charBufferPool.acquire();
 
 					DECODER.decode(bs, buf, true);
 					buf.flip();
-					cm.processIncomingSequenceBufToQueue(buf);
+					//cm.processIncomingSequenceBufToQueue(buf);
 
 					buf = this.charBufferPool.release(buf);
 				}
@@ -338,6 +339,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				{
 					e.printStackTrace();
 				}
+				*/
 			}
 
 			synchronized (this)
@@ -360,7 +362,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	protected NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScopeIn, Scope registryIn)
 	{
-		return new NewClientSessionManager(sessionId, maxMessageSize, this.getBackend(), this, sk,
+		return new NewClientSessionManager(sessionId, maxMessageSize/*, this.getBackend(), this*/, sk,
 				translationScopeIn, registryIn);
 	}
 
@@ -429,6 +431,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		t.start();
 
 		super.start();
+		JWebSocketServerLight.startWebsocketServer(this);
 	}
 
 	/**
@@ -498,48 +501,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		return permanent;
 	}
 
-	/**
-	 * Attempts to switch the ContextManager for a SocketChannel. oldId indicates the session id that
-	 * was used for the connection previously (in order to find the correct ContextManager) and
-	 * newContextManager is the recently-created (and now, no longer necessary) ContextManager for the
-	 * connection.
-	 * 
-	 * @param oldId
-	 * @param newContextManager
-	 * @return true if the restore was successful, false if it was not.
-	 */
-	@Override
-	public boolean restoreContextManagerFromSessionId(String oldSessionId,
-			NewBaseSessionManager newContextManager)
-	{
-		debug("attempting to restore old session...");
 
-		NewTCPClientSessionManager oldContextManager;
-
-		synchronized (clientSessionManagerMap)
-		{
-			oldContextManager = this.clientSessionManagerMap.get(oldSessionId);
-		}
-		if (oldContextManager == null)
-		{ // cannot restore old context
-			debug("restore failed.");
-			return false;
-		}
-		else
-		{
-			oldContextManager.setSocket(newContextManager.getSocketKey());
-
-			synchronized (clientSessionManagerMap)
-			{
-				/* remove pointers to new session manager since we're using the old one */
-				this.clientSessionManagerMap.remove(newContextManager.getSessionId());
-				this.clientSessionHandleMap.remove(newContextManager.getSessionId());
-			}
-
-			///this.getBackend().debug("old session restored!");
-			return true;
-		}
-	}
 
 	/**
 	 * 
@@ -569,23 +531,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		return "double_threaded_logging " + inetAddresses[0].toString() + ":" + portNumber;
 	}
 
-	@Override
-	public ByteBufferPool getSharedByteBufferPool() 
-	{
-		return byteBufferPool;
-	}
 
-	@Override
-	public CharBufferPool getSharedCharBufferPool() 
-	{
-		return charBufferPool;
-	}
-
-	@Override
-	public StringBuilderPool getSharedStringBuilderPool() 
-	{
-		return stringBuilderPool;
-	}
 
 	@Override
 	public void putServerObject(Object o) {

@@ -29,7 +29,7 @@ import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.ServiceMessage;
 import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.oodss.server.clientsessionmanager.NewDatagramClientSessionManager;
-import ecologylab.oodss.server.clientsessionmanager.NewSessionHandle;
+import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.serialization.TranslationScope;
 
 /**
@@ -40,21 +40,20 @@ import ecologylab.serialization.TranslationScope;
  * @param <S>
  *          Application scope type parameter.
  */
-public class AIODatagramServer<S extends Scope> extends NIODatagramCore<S> implements
-		AIOServerProcessor
+public class AIODatagramServer<S extends Scope> extends NIODatagramCore<S>
 {
 	private long																										sidIndex							= 1;
 
 	private ConcurrentHashMap<String, NewDatagramClientSessionManager>	sidToSessionManager		= new ConcurrentHashMap<String, NewDatagramClientSessionManager>();
 
-	private ConcurrentHashMap<SocketAddress, String>								socketAddressesToSids	= new ConcurrentHashMap<SocketAddress, String>();
+	//private ConcurrentHashMap<SocketAddress, String>								socketAddressesToSids	= new ConcurrentHashMap<SocketAddress, String>();
 
-	private ConcurrentHashMap<String, SocketAddress>								sidsToSocketAddresses	= new ConcurrentHashMap<String, SocketAddress>();
+	//private ConcurrentHashMap<String, SocketAddress>								sidsToSocketAddresses	= new ConcurrentHashMap<String, SocketAddress>();
 
 	/**
 	 * Map in which keys are sessionTokens, and values are associated SessionHandles
 	 */
-	private HashMapArrayList<Object, NewSessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, NewSessionHandle>();
+	private HashMapArrayList<Object, SessionHandle>									clientSessionHandleMap	= new HashMapArrayList<Object, SessionHandle>();
 
 	protected S																											applicationObjectScope;
 
@@ -145,31 +144,36 @@ public class AIODatagramServer<S extends Scope> extends NIODatagramCore<S> imple
 		// if (message instanceof InitConnectionRequest)
 		// {
 		// InitConnectionRequest initReq = (InitConnectionRequest) message;
-		synchronized (socketAddressesToSids)
-		{
+//
+	//	synchronized (socketAddressesToSids)
+	//	{
 			// if (initReq.getSessionId() == null)
 			// {
-			sid = socketAddressesToSids.get(address);
+	//		sid = socketAddressesToSids.get(address);
 
-			if (sid == null)
-			{ // no session manager created yet; create one
+//			if (sid == null)
+//			{ // no session manager created yet; create one
 				sid = this.generateSessionToken((InetSocketAddress) address);
 
 				debug("New session: " + sid + " at: " + address);
 
-				socketAddressesToSids.put(address, sid);
-				sidsToSocketAddresses.put(sid, address);
+	//			socketAddressesToSids.put(address, sid);
+	//			sidsToSocketAddresses.put(sid, address);
 
 				NewDatagramClientSessionManager mngr = this.generateContextManager(sid, key,
 						this.applicationObjectScope, address);
 				
-				NewSessionHandle hndl = new NewSessionHandle(mngr);
+				//SessionHandle hndl = new SessionHandle(mngr);
+				//SessionHandle sss =  mngr.get;
+				//SessionHandle ssss = new SessionHandle()
+				//BaseSessionManager bbb = new BaseSessionManager<Scope, Scope>() {
+			//	};
 				
 				sidToSessionManager.put(sid, mngr);
-				clientSessionHandleMap.put(sid, hndl);
+				//clientSessionHandleMap.put(sid, hndl);
 				
-				mngr.getScope().put(SessionObjects.SESSION_HANDLE, new NewSessionHandle(mngr));
-			}
+				//mngr.getScope().put(SessionObjects.SESSION_HANDLE, new SessionHandle(mngr));
+	//		}
 
 			clientSessionManager = sidToSessionManager.get(sid);
 
@@ -185,7 +189,7 @@ public class AIODatagramServer<S extends Scope> extends NIODatagramCore<S> imple
 			if (response != null)
 				this.sendMessage(response, key, uid, address);
 
-		}
+	//	}
 	}
 
 	//					
@@ -367,89 +371,6 @@ public class AIODatagramServer<S extends Scope> extends NIODatagramCore<S> imple
 	 * @see ecologylab.oodss.distributed.server.AIOServerProcessor#invalidate(java.lang.String,
 	 *      boolean)
 	 */
-	@Override
-	public boolean invalidate(String sessionId, boolean forcePermanent)
-	{
-		NewDatagramClientSessionManager cm = this.sidToSessionManager.get(sessionId);
 
-		// figure out if the disconnect is permanent; will be permanent if forcing
-		// (usually bad client), if there is no context manager (client never sent
-		// data), or if the client manager says it is invalidating (client
-		// disconnected properly)
-		boolean permanent = (forcePermanent ? true : (cm == null ? true : cm.isInvalidating()));
 
-		// get the context manager...
-		if (permanent)
-		{
-			synchronized (sidToSessionManager)
-			{ // ...if this session will not be restored, remove the context
-				// manager
-				sidToSessionManager.remove(sessionId);
-				clientSessionHandleMap.remove(sessionId);
-				SocketAddress address = this.sidsToSocketAddresses.remove(sessionId);
-				this.socketAddressesToSids.remove(address);
-			}
-		}
-
-		if (cm != null)
-		{
-			cm.shutdown();
-		}
-
-		return permanent;
 	}
-
-	/**
-	 * @see ecologylab.oodss.distributed.server.AIOServerProcessor#restoreContextManagerFromSessionId(java.lang.String,
-	 *      ecologylab.oodss.distributed.server.clientsessionmanager.BaseSessionManager)
-	 */
-	@Override
-	public boolean restoreContextManagerFromSessionId(String oldId,
-			NewBaseSessionManager newContextManager)
-	{
-		SocketAddress oldAddress = this.sidsToSocketAddresses.get(oldId);
-
-		if (oldAddress != null)
-		{ // the old session manager is still there
-			// connect it to the new address through the maps
-
-			SocketAddress newAddress = ((NewDatagramClientSessionManager) newContextManager).getAddress();
-
-			this.sidsToSocketAddresses.put(oldId, newAddress);
-			this.socketAddressesToSids.remove(oldAddress);
-			this.socketAddressesToSids.put(newAddress, oldId);
-
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	/**
-	 * @see java.lang.Runnable#run()
-	 */
-	@Override
-	public void run()
-	{
-	}
-
-	@Override
-	public ByteBufferPool getSharedByteBufferPool() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public CharBufferPool getSharedCharBufferPool() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public StringBuilderPool getSharedStringBuilderPool() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-}

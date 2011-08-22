@@ -47,7 +47,7 @@ public class TestServer
 				100000);
 		s.start();
 		
-		JWebSocketServerLight.startWebsocketServer(s);
+		//JWebSocketServerLight.startWebsocketServer(s);
 		
 	}
 	

@@ -9,7 +9,6 @@ import java.nio.channels.SelectionKey;
 
 import ecologylab.collections.Scope;
 import ecologylab.oodss.distributed.server.AIODatagramServer;
-import ecologylab.oodss.distributed.server.NIODatagramServer;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
@@ -34,7 +33,7 @@ public class NewDatagramClientSessionManager extends NewBaseSessionManager
 	public NewDatagramClientSessionManager(String sessionId, AIODatagramServer aioDatagramServer,
 			SelectionKey socket, Scope<?> baseScope, InetSocketAddress	address)
 	{
-		super(sessionId, aioDatagramServer, socket, baseScope);
+		super(sessionId, socket, baseScope);
 		
 		this.address = address;
 		this.server = aioDatagramServer;

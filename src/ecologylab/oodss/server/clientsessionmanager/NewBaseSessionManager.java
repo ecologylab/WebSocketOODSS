@@ -9,7 +9,7 @@ import java.nio.channels.SelectionKey;
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.Debug;
-import ecologylab.oodss.distributed.server.AIOServerProcessor;
+import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.messages.BadSemanticContentResponse;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.messages.InitConnectionResponse;
@@ -32,7 +32,7 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 	/**
 	 * Session handle available to use by clients
 	 */
-	protected NewSessionHandle				handle;
+	protected SessionHandle				handle;
 
 	/**
 	 * sessionId uniquely identifies this ContextManager. It is used to restore the state of a lost
@@ -52,7 +52,6 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 	 * client attempts to restore a session, in which case the frontend must be queried for the old
 	 * ContextManager.
 	 */
-	protected AIOServerProcessor	frontend				= null;
 
 	/**
 	 * Indicates whether the first request message has been received. The first request may be an
@@ -74,12 +73,11 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 	/**
 	 * 
 	 */
-	public NewBaseSessionManager(String sessionId, AIOServerProcessor frontend, SelectionKey socket,
+	public NewBaseSessionManager(String sessionId, SelectionKey socket,
 			Scope<?> baseScope)
 	{
 		super();
 
-		this.frontend = frontend;
 		this.socketKey = socket;
 		this.sessionId = sessionId;
 
@@ -184,14 +182,9 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 					}
 					else
 					{ // client is expecting an old ContextManager
-						if (frontend.restoreContextManagerFromSessionId(incomingSessionId, this))
-						{
-							response = new InitConnectionResponse(incomingSessionId);
-						}
-						else
-						{
+						
 							response = new InitConnectionResponse(this.sessionId);
-						}
+						
 					}
 
 					initialized = true;
@@ -232,47 +225,8 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 		}
 		
 		else
-		{
-			
+		{		
 			response = performService(request);
-			/*
-			if (!isInitialized())
-			{
-				// special processing for InitConnectionRequest
-				if (request instanceof InitConnectionRequest)
-				{
-					String incomingSessionId = ((InitConnectionRequest) request).getSessionId();
-
-					if (incomingSessionId == null)
-					{ // client is not expecting an old ContextManager
-						response = new InitConnectionResponse(this.sessionId);
-					}
-					else
-					{ // client is expecting an old ContextManager
-						if (frontend.restoreContextManagerFromSessionId(incomingSessionId, this))
-						{
-							response = new InitConnectionResponse(incomingSessionId);
-						}
-						else
-						{
-							response = new InitConnectionResponse(this.sessionId);
-						}
-					}
-
-					initialized = true;
-				}
-			}
-			else
-			{
-				// perform the service being requested
-				response = performService(request, address);
-			}
-
-			if (response == null)
-			{
-				debug("context manager did not produce a response message.");
-			}
-			*/
 		}
 		
 

@@ -37,13 +37,14 @@ import org.jwebsocket.token.Token;
 
 
 import ecologylab.collections.Scope;
+import ecologylab.generic.Debug;
 import ecologylab.generic.Generic;
 import ecologylab.generic.StringBuilderPool;
 import ecologylab.generic.StringTools;
 import ecologylab.oodss.distributed.common.ClientConstants;
 import ecologylab.oodss.distributed.common.ServerConstants;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
-import ecologylab.oodss.distributed.impl.AIONetworking;
+//import ecologylab.oodss.distributed.impl.AIONetworking;
 import ecologylab.oodss.distributed.impl.MessageWithMetadata;
 import ecologylab.oodss.distributed.impl.MessageWithMetadataPool;
 import ecologylab.oodss.distributed.impl.NIONetworking;
@@ -78,7 +79,7 @@ import ecologylab.serialization.ElementState.FORMAT;
  * 
  * @author Zachary O. Dugas Toups (zach@ecologylab.net)
  */
-public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runnable,
+public class AIOClient<S extends Scope> extends Debug implements Runnable,
 		ClientConstants, WebSocketClientTokenListener
 {
 	protected String																									serverAddress;
@@ -222,6 +223,7 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	private ByteBuffer																								compressedMessageBuffer;
 
 	private List<ClientStatusListener>																clientStatusListeners					= null;
+	private TranslationScope translationScope;
 
 	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
 			S objectRegistry, int maxMessageLengthChars) throws IOException
@@ -1068,7 +1070,8 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 
 	private void processUpdate(UpdateMessage message)
 	{
-		message.processUpdate(objectRegistry);
+		//message.processUpdate(objectRegistry);
+		System.out.println("Should be doing a processUpdate but I don't know what function to call!!!");
 	}
 
 	/**
@@ -1236,10 +1239,10 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	 * 
 	 * @see ecologylab.oodss.distributed.impl.NIONetworking#acceptKey(java.nio.channels.SelectionKey)
 	 */
-	@Override
-	protected void acceptKey(SelectionKey key)
-	{
-	}
+//	@Override
+//	protected void acceptKey(SelectionKey key)
+//	{
+//	}
 
 		private CharSequence unCompress(StringBuilder firstMessageBuffer)
 			throws CharacterCodingException, DataFormatException
@@ -1363,7 +1366,9 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	 */
 	protected void processResponse(ResponseMessage responseMessageToProcess)
 	{
-		responseMessageToProcess.processResponse(objectRegistry);
+		//responseMessageToProcess.processResponse(objectRegistry);
+		System.out.println("Should be foing a processResponse but I'm not sure what function to call!!!");
+		
 	}
 
 	public String getServer()
@@ -1502,19 +1507,19 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 	/**
 	 * @see ecologylab.oodss.distributed.impl.NIONetworking#writeKey(java.nio.channels.SelectionKey)
 	 */
-	@Override
-	protected void writeKey(SelectionKey key) throws IOException
-	{
+	//@Override
+	//protected void writeKey(SelectionKey key) throws IOException
+	//{
 		// lock outgoing requests queue, send data from it, then switch out of
 		// write mode
-		synchronized (requestsQueue)
-		{
-			while (this.requestsRemaining() > 0)
-			{
-				this.createPacketFromMessageAndSend(this.dequeueRequest(), key);
-			}
-		}
-	}
+		//synchronized (requestsQueue)
+		//{
+		//	while (this.requestsRemaining() > 0)
+		//	{
+		//		this.createPacketFromMessageAndSend(this.dequeueRequest(), key);
+		//	}
+		//}
+	//}
 	///////////****...//////
 	//I'm trying to keep changes to the client down here... but they will undoubtably sprawl at some point
 	//BaseTokenClient client;
@@ -1733,10 +1738,10 @@ public class AIOClient<S extends Scope> extends AIONetworking<S> implements Runn
 		
 	}
 
-	@Override
-	protected void processReadData(Object sessionToken, SelectionKey sk,
-			ByteBuffer bytes, int bytesRead) throws BadClientException {
+//	@Override
+//	protected void processReadData(Object sessionToken, SelectionKey sk,
+//			ByteBuffer bytes, int bytesRead) throws BadClientException {
 		// TODO Auto-generated method stub
 		
-	}
+//	}
 }
