@@ -16,12 +16,15 @@ import ecologylab.oodss.messages.InitConnectionResponse;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.SIMPLTranslationException;
+import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.ElementState.FORMAT;
 
 /**
  * @author Zachary O. Toups (zach@ecologylab.net)
  * 
  */
-public abstract class NewBaseSessionManager<S extends Scope> extends Debug
+public class WebSocketSessionManager<S extends Scope> extends Debug
 {
 
 	/**
@@ -66,6 +69,8 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 	 */
 	private boolean								invalidating		= false;
 
+	private TranslationScope translationScope;
+
 	public static final String		SESSION_ID			= "SESSION_ID";
 
 	public static final String		CLIENT_MANAGER	= "CLIENT_MANAGER";
@@ -73,7 +78,7 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 	/**
 	 * 
 	 */
-	public NewBaseSessionManager(String sessionId, SelectionKey socket,
+	public WebSocketSessionManager(String sessionId, SelectionKey socket,
 			Scope<?> baseScope)
 	{
 		super();
@@ -86,6 +91,13 @@ public abstract class NewBaseSessionManager<S extends Scope> extends Debug
 		this.localScope.put(SESSION_ID, sessionId);
 		this.localScope.put(CLIENT_MANAGER, this);
 	}
+
+	public WebSocketSessionManager(String sessionId2, TranslationScope translationScope,
+			S applicationObjectScope) {
+		this.sessionId = sessionId2;
+		this.localScope = applicationObjectScope;
+		this.translationScope = translationScope;
+		}
 
 	/**
 	 * Provides the context scope for the client attached to this session manager. The base
@@ -299,12 +311,14 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 		return invalidating;
 	}
 
-	public abstract void sendUpdateToClient(UpdateMessage<?> update);
+	public void sendUpdateToClient(UpdateMessage<?> update)
+	{
+		System.out.println("SEND UPDATE MESSAGE PLEASE BLAAAAAHHHH!!!!!!!");
+	}
 	
 	/**
 	 * @return the address
 	 */
-	public abstract InetSocketAddress getAddress();
 	
 	public String getSessionId()
 	{
@@ -324,5 +338,14 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 	public void shutdown()
 	{
 
+	}
+	
+	public /*protected*/ RequestMessage translateOODSSRequestJSON(CharSequence messageCharSequence)
+	throws SIMPLTranslationException
+	{
+		System.out.println(1.1);
+		RequestMessage rm =  (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);
+		System.out.println(1.2);
+		return rm;//deserializeCharSequence(messageCharSequence);	
 	}
 }

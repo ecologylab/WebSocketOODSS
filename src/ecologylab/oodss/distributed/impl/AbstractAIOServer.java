@@ -12,7 +12,8 @@ import ecologylab.collections.Scope;
 import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.messages.InitConnectionRequest;
-import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
+import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
 /**
@@ -109,7 +110,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
 	}*/
 
-	protected abstract NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
+	protected abstract WebSocketSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScope, Scope globalScope);
 
 	/**

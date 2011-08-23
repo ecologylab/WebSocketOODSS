@@ -37,10 +37,10 @@ import ecologylab.oodss.exceptions.BadClientException;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
-import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
-import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
+import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
-import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
 import ecologylab.serialization.ElementState.FORMAT;
@@ -149,9 +149,9 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	/**
 	 * Map in which keys are sessionTokens, and values are associated ClientSessionManagers.
 	 */
-	private HashMapArrayList<Object, NewTCPClientSessionManager>	clientSessionManagerMap	= new HashMapArrayList<Object, NewTCPClientSessionManager>();
+	private HashMapArrayList<Object, WebSocketSessionManager>	clientSessionManagerMap	= new HashMapArrayList<Object, WebSocketSessionManager>();
 
-	public HashMap<String, NewClientSessionManager> GetAllSessions()
+	public HashMap<String, WebSocketSessionManager> GetAllSessions()
 	{
 		return sessionForSessionIdMap;
 	}
@@ -195,7 +195,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 
 		instantiateBufferPools(this.maxMessageSize);
 		
-		sessionForSessionIdMap = new HashMap<String, NewClientSessionManager>();
+		sessionForSessionIdMap = new HashMap<String, WebSocketSessionManager>();
 	}
 
 	/**
@@ -247,7 +247,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	}
 
 	////////
-	HashMap<String, NewClientSessionManager> sessionForSessionIdMap;
+	HashMap<String, WebSocketSessionManager> sessionForSessionIdMap;
 	@Override
 	public String getAPushFromWebSocket(String s, String sessionId)
 	{
@@ -258,7 +258,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		
 		
 		//String sessionId = "2212121212122112";
-		NewClientSessionManager theClientSessionManages = null;
+		WebSocketSessionManager theClientSessionManages = null;
 		
 		if(sessionForSessionIdMap.containsKey(sessionId))
 		{
@@ -266,7 +266,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		}
 		else
 		{
-			theClientSessionManages = new NewClientSessionManager(sessionId, maxMessageSize, /*this.getBackend(), this,*/ null,
+			theClientSessionManages = new WebSocketSessionManager(sessionId,
 					this.translationScope, this.applicationObjectScope );
 			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
 		}
@@ -313,7 +313,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		{
 			synchronized (clientSessionManagerMap)
 			{
-				NewClientSessionManager cm = (NewClientSessionManager) clientSessionManagerMap.get(sessionToken);
+				WebSocketSessionManager cm = (WebSocketSessionManager) clientSessionManagerMap.get(sessionToken);
 
 				if (cm == null)
 				{
@@ -322,7 +322,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 					cm = generateContextManager((String) sessionToken, sk, translationScope,
 							applicationObjectScope);
 					clientSessionManagerMap.put(sessionToken, cm);
-					clientSessionHandleMap.put(sessionToken, cm.getHandle());
+			//		clientSessionHandleMap.put(sessionToken, cm.getHandle());
 				}
 /*
 				try
@@ -359,16 +359,17 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 * @return
 	 */
 	@Override
-	protected NewClientSessionManager generateContextManager(String sessionId, SelectionKey sk,
+	protected WebSocketSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScopeIn, Scope registryIn)
 	{
-		return new NewClientSessionManager(sessionId, maxMessageSize/*, this.getBackend(), this*/, sk,
-				translationScopeIn, registryIn);
+		return new WebSocketSessionManager(sessionId,translationScopeIn,registryIn);
+				
+				//sessionId, maxMessageSize/*, this.getBackend(), this*/, sk,translationScopeIn, registryIn);
 	}
 
 	public void run()
 	{
-		Iterator<NewTCPClientSessionManager> contextIter;
+		Iterator<WebSocketSessionManager> contextIter;
 
 		while (running)
 		{
@@ -379,23 +380,23 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 				// process all of the messages in the queues
 				while (contextIter.hasNext())
 				{
-					NewTCPClientSessionManager cm = contextIter.next();
-
-					try
-					{
-						cm.processAllMessagesAndSendResponses();
-					}
-					catch (BadClientException e)
-					{
+					WebSocketSessionManager cm = contextIter.next();
+                    System.out.println("!!!!!!!!!!!!! should have done the ....  cm.processAllMessagesAndSendResponses();");
+					//try
+					//{
+						//cm.processAllMessagesAndSendResponses();
+					//}
+					//catch (BadClientException e)
+					//{
 						// Handle BadClientException! -- remove it
-						error(e.getMessage());
+						//error(e.getMessage());
 
 						// invalidate the manager's key
 						//this.getBackend().setPendingInvalidate(cm.getSocketKey(), true);
 
 						// remove the manager from the collection
-						contextIter.remove();
-					}
+						//contextIter.remove();
+					//}
 				}
 			}
 
@@ -468,7 +469,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 */
 	public boolean invalidate(String sessionId, boolean forcePermanent)
 	{
-		NewTCPClientSessionManager cm = clientSessionManagerMap.get(sessionId);
+		WebSocketSessionManager cm = clientSessionManagerMap.get(sessionId);
 
 		// figure out if the disconnect is permanent; will be permanent if forcing
 		// (usually bad client), if there is no context manager (client never sent

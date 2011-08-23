@@ -20,7 +20,7 @@ import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
 import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
-import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
 /**

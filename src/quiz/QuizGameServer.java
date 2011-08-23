@@ -14,8 +14,9 @@ import javax.swing.Timer;
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
 import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
-import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
-import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
+//import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 import ecologylab.standalone.TestUpdateMessage;
 
@@ -51,17 +52,17 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 			public void actionPerformed(ActionEvent arg0) {
 				
 				
-				HashMap<String, NewClientSessionManager> allSessions = GetAllSessions();
+				HashMap<String, WebSocketSessionManager> allSessions = GetAllSessions();
 				System.out.println("HEY THIS TIME JUST WENT OFFFF.... there are "+allSessions.size());
 				Iterator contextIter = allSessions.values().iterator();
 				// process all of the messages in the queues
 				TestUpdateMessage testUpdateMessage = new TestUpdateMessage("Hey guys","friendly",501);
 				while (contextIter.hasNext())
 				{
-					NewTCPClientSessionManager clientSession = (NewTCPClientSessionManager) contextIter.next();
+					WebSocketSessionManager clientSession = (WebSocketSessionManager) contextIter.next();
 				    //clientSession.sendUpdateToClient(testUpdateMessage);
-					System.out.println("Tag is:"+clientSession.getHandle().getSessionId().toString());
-					sendUpdateMessage(clientSession.getHandle().getSessionId().toString(),new TestUpdateMessage("You complete me.","Sarcastic",9001));
+					System.out.println("Tag is:"+clientSession.getSessionId().toString());
+					sendUpdateMessage(clientSession.getSessionId().toString(),new TestUpdateMessage("You complete me.","Sarcastic",9001));
 				}
 				
 			    printNumberOfConnectedClients();
@@ -73,14 +74,14 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 	public void UpdatePlayers()
 	{
 		//((QuizGameServer)clientSessionScope.get("server")).send//.sendUpdateMessage(clientId, updateMessage);
-		HashMap<String, NewClientSessionManager> allSessions = GetAllSessions();
+		HashMap<String, WebSocketSessionManager> allSessions = GetAllSessions();
 		Iterator contextIter = allSessions.values().iterator();
 		// process all of the messages in the queues
 		TestUpdateMessage testUpdateMessage = new TestUpdateMessage("Hey guys","friendly",501);
 		while (contextIter.hasNext())
 		{
-			NewTCPClientSessionManager clientSession = (NewTCPClientSessionManager) contextIter.next();
-			sendUpdateMessage(clientSession.getHandle().getSessionId().toString(),new PlayersAndScoresUpdateMessage(players));
+			WebSocketSessionManager clientSession = (WebSocketSessionManager) contextIter.next();
+			sendUpdateMessage(clientSession.getSessionId().toString(),new PlayersAndScoresUpdateMessage(players));
 		}
 		    
 	}
