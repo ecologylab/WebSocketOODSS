@@ -60,7 +60,6 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		ServerConstants, ServerMessages
 {		
 	
-	
 	public WebSocketServer webSocketServer;
 	
 
@@ -124,23 +123,6 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		return addresses;
 	}
 
-	public static DoubleThreadedAIOServer getInstance(int portNumber, InetAddress[] inetAddress,
-			TranslationScope requestTranslationScope, Scope applicationObjectScope,
-			int idleConnectionTimeout, int maxPacketSize) throws IOException, BindException
-	{
-		return new DoubleThreadedAIOServer(portNumber, inetAddress, requestTranslationScope,
-				applicationObjectScope, idleConnectionTimeout, maxPacketSize);
-	}
-
-	public static DoubleThreadedAIOServer getInstance(int portNumber, InetAddress inetAddress,
-			TranslationScope requestTranslationScope, Scope applicationObjectScope,
-			int idleConnectionTimeout, int maxPacketSize) throws IOException, BindException
-	{
-		InetAddress[] address =
-		{ inetAddress };
-		return getInstance(portNumber, address, requestTranslationScope, applicationObjectScope,
-				idleConnectionTimeout, maxPacketSize);
-	}
 
 	Thread																													t												= null;
 
@@ -178,24 +160,42 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	
 	protected StringBuilderPool																				stringBuilderPool;
 
+	
+	private static DoubleThreadedAIOServer serverInstance = null;
+	
+	public static DoubleThreadedAIOServer getInstance()
+	{
+		if(serverInstance == null)
+		{
+			System.out.println("THE INSTANCE YOU CALLED WAS NULL");
+			return null;//throw new Exception("This is not instantiated yet.");
+		}
+		else
+		{
+		    return serverInstance;
+		}
+	}
 	/**
 	 * 
 	 */
-	protected DoubleThreadedAIOServer(int portNumber, InetAddress[] inetAddresses,
-			TranslationScope requestTranslationScope, S applicationObjectScope,
+	public DoubleThreadedAIOServer(TranslationScope requestTranslationScope, S applicationObjectScope,
 			int idleConnectionTimeout, int maxMessageSize) throws IOException, BindException
 	{
-		super(portNumber, inetAddresses, requestTranslationScope, applicationObjectScope,
+		super(0, InetAddress.getLocalHost(), requestTranslationScope, applicationObjectScope,
 				idleConnectionTimeout, maxMessageSize);
 
 		this.maxMessageSize = maxMessageSize + MAX_HTTP_HEADER_LENGTH;
 		this.translationScope = requestTranslationScope;//gbgbgb
 
 		applicationObjectScope.put(SessionObjects.SESSIONS_MAP, clientSessionHandleMap);
+		
 
 		instantiateBufferPools(this.maxMessageSize);
 		
 		sessionForSessionIdMap = new HashMap<String, WebSocketSessionManager>();
+		applicationObjectScope.put(SessionObjects.SESSIONS_MAP_BY_SESSION_ID, sessionForSessionIdMap);
+
+		serverInstance = this;
 	}
 
 	/**
@@ -214,38 +214,9 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		
 		this.stringBuilderPool 	= new StringBuilderPool(poolSize, minimumCapicity, maxMessageSize);
 	}
-	/**
-	 * 
-	 */
-	protected DoubleThreadedAIOServer(int portNumber, InetAddress inetAddress,
-			TranslationScope requestTranslationScope, S applicationObjectScope,
-			int idleConnectionTimeout, int maxPacketSize) throws IOException, BindException
-	{
-		this(portNumber, NetTools.wrapSingleAddress(inetAddress), requestTranslationScope,
-				applicationObjectScope, idleConnectionTimeout, maxPacketSize);
-	}
 
-	/**
-	 * Assumes that the server should be running on the local host (including external interfaces)
-	 * with default sizes for everything.
-	 * 
-	 * @param portNumber
-	 *          - the port number the server will run on.
-	 * @param requestTranslationScope
-	 *          - the scope of translation for incoming requests.
-	 * @param applicationObjectScope
-	 *          - the application object scope, containing application state objects that messages
-	 *          will access and manipulate.
-	 * @throws IOException
-	 * @throws BindException
-	 */
-	protected DoubleThreadedAIOServer(int portNumber, TranslationScope requestTranslationScope,
-			S applicationObjectScope) throws BindException, IOException
-	{
-		this(portNumber, NetTools.getAllInetAddressesForLocalhost(), requestTranslationScope,
-				applicationObjectScope, DEFAULT_IDLE_TIMEOUT, DEFAULT_MAX_MESSAGE_LENGTH_CHARS);
-	}
-
+	
+	
 	////////
 	HashMap<String, WebSocketSessionManager> sessionForSessionIdMap;
 	@Override
@@ -255,6 +226,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		//most of the thread stuff is handled by the jWebSocket architechure
 		
 		System.out.println("Just got getAPushFromWebSocket:"+s);
+		applicationObjectScope.put(SessionObjects.SESSION_ID, sessionId);
 		
 		
 		//String sessionId = "2212121212122112";
@@ -529,6 +501,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	 */
 	protected static String connectionTscopeName(InetAddress[] inetAddresses, int portNumber)
 	{
+		
 		return "double_threaded_logging " + inetAddresses[0].toString() + ":" + portNumber;
 	}
 

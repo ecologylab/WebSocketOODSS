@@ -1,10 +1,11 @@
 /**
  * 
  */
-package ecologylab.standalone;
+package ecologylab.standalone.chat;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.jwebsocket.config.JWebSocketServerConstants;
@@ -21,13 +22,14 @@ import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
+import ecologylab.serialization.ElementState;
 import ecologylab.serialization.TranslationScope;
 
 /**
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
  *
  */
-public class TestServer
+public class ChatServerLauncher
 {
 
 	/**
@@ -38,8 +40,10 @@ public class TestServer
 	public static void main(String[] args) throws BindException, IOException
 	{
 		//JWebSocketServer.main(null);
+		TranslationScope ts = ChatServer.getTranslationScope();
+		
 		DoubleThreadedAIOServer s = new DoubleThreadedAIOServer(
-				DefaultServicesTranslations.get(), 
+				ts, 
 				new Scope(), 
 				100000, 
 				100000);

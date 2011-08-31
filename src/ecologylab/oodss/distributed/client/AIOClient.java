@@ -16,6 +16,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.CharacterCodingException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -60,6 +61,7 @@ import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.SendableRequest;
 import ecologylab.oodss.messages.ServiceMessage;
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.ClassDescriptor;
 import ecologylab.serialization.SIMPLTranslationException;
 import ecologylab.serialization.TranslationScope;
 import ecologylab.serialization.ElementState.FORMAT;
@@ -85,6 +87,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	protected String																									serverAddress;
 	protected final CharBuffer																				outgoingChars;
 
+	protected Scope objectRegistry;
 	/**
 	 * A temporary buffer of characters into which requests are placed before they are moved to
 	 * outgoingChars.
@@ -231,6 +234,8 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 		//super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
 
 		//I know the above and much below is unnecessary glut.
+		this.objectRegistry = objectRegistry;
+		
 
 		this.translationScope = messageSpace;
 		this.maxMessageLengthChars = maxMessageLengthChars;
@@ -251,7 +256,9 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 		this.compressedMessageBuffer = ByteBuffer.allocate(maxMessageLengthChars);
 
 		this.serverAddress = serverAddress;
-		
+		objectRegistry.put("session_id", this.sessionId);
+		objectRegistry.put("test", "its here buddy");
+
 	
 		initializeWebSocketClient();//this is called before start()
 	}
@@ -272,53 +279,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	public boolean connect()
 	{
 		debug("initializing connection... NOT REALLY");
-		/*
-		if (this.connectImpl())
-		{
-			debug("starting listener thread...");
-
-			this.start();
-
-			// now send first handshake message
-			ResponseMessage initResponse = null;
-			try
-			{
-				initResponse = this.sendMessage(new InitConnectionRequest(this.sessionId));
-			}
-			catch (MessageTooLargeException e)
-			{
-				// this shouldn't be able to happen
-				e.printStackTrace();
-			}
-
-			if (initResponse instanceof InitConnectionResponse)
-			{
-				if (this.sessionId == null)
-				{
-					this.sessionId = ((InitConnectionResponse) initResponse).getSessionId();
-
-					debug("new session: " + this.sessionId);
-				}
-				else if (this.sessionId == ((InitConnectionResponse) initResponse).getSessionId())
-				{
-					debug("reconnected and restored previous connection: " + this.sessionId);
-				}
-				else
-				{
-					String newId = ((InitConnectionResponse) initResponse).getSessionId();
-					debug("unable to restore previous session, " + this.sessionId + "; new session: " + newId);
-					this.unableToRestorePreviousConnection(this.sessionId, newId);
-					this.sessionId = newId;
-				}
-
-				this.thisSocket.keyFor(this.selector).attach(this.sessionId);
-			}
-		}
-
-		this.notifyOfStatusChange(this.connected());
-
-		debug("connected? " + this.connected());
-		*/
+	
 		return connected();
 	}
 
@@ -490,7 +451,8 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 
 	public boolean connected()
 	{
-		return (thisSocket != null) && !thisSocket.isConnectionPending() && thisSocket.isConnected();
+		//this is wrong...
+		return true;//(thisSocket != null) && !thisSocket.isConnectionPending() && thisSocket.isConnected();
 	}
 
 	/**
@@ -600,122 +562,17 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		/*
-		MessageWithMetadata<ServiceMessage, Object> responseMessage = null;
-
-		// notify the connection thread that we are waiting on a response
-		blockingRequestPending = true;
-
+		
+		
 		long currentMessageUid;
 
 		boolean blockingRequestFailed = false;
 		long startTime = System.currentTimeMillis();
 		int timeCounter = 0;
 
-		try
-		{
-			currentMessageUid = this.prepareAndEnqueueRequestForSending(request).getUid();
-		}
-		catch (SIMPLTranslationException e1)
-		{
-			error("error translating to XML; returning null");
-			e1.printStackTrace();
-
-			return null;
-		}
-		catch (MessageTooLargeException e)
-		{
-			blockingRequestPending = false;
-			error("message too large to send");
-			e.printStackTrace();
-			throw e;
-		}
-
-		// wait to be notified that the response has arrived
-		while (blockingRequestPending && !blockingRequestFailed)
-		{
-			if (timeOutMillis <= -1)
-			{
-				debug("waiting on blocking request");
-			}
-
-			try
-			{
-				if (timeOutMillis > -1)
-				{
-					wait(timeOutMillis);
-				}
-				else
-				{
-					wait();
-				}
-			}
-			catch (InterruptedException e)
-			{
-				e.printStackTrace();
-				Thread.interrupted();
-			}
-
-			debug("waking");
-
-			timeCounter += System.currentTimeMillis() - startTime;
-			startTime = System.currentTimeMillis();
-
-			while ((blockingRequestPending) && (!blockingResponsesQueue.isEmpty()))
-			{
-				responseMessage = blockingResponsesQueue.poll();
-
-				if (responseMessage.getUid() == currentMessageUid)
-				{
-					debug("got the right response: " + currentMessageUid);
-
-					blockingRequestPending = false;
-
-					blockingResponsesQueue.clear();
-
-					ResponseMessage respMsg = (ResponseMessage) responseMessage.getMessage();
-
-					// try
-					// {
-					// debug("response: " + respMsg.serialize().toString());
-					// }
-					// catch (SIMPLTranslationException e)
-					// {
-					// e.printStackTrace();
-					// }
-
-					responseMessage = responsePool.release(responseMessage);
-
-					return respMsg;
-				}
-
-				responseMessage = responsePool.release(responseMessage);
-			}
-
-			if ((timeOutMillis > -1) && (timeCounter >= timeOutMillis) && (blockingRequestPending))
-			{
-				blockingRequestFailed = true;
-			}
-		}
-
-		if (blockingRequestFailed)
-		{
-			debug("Request failed due to timeout!");
-		}
-
-		return null;
-		*/
 		
-		
-
-		long currentMessageUid;
-
-		boolean blockingRequestFailed = false;
-		long startTime = System.currentTimeMillis();
-		int timeCounter = 0;
-
 		// wait to be notified that the response has arrived
-		while (blockingRequestPending && !blockingRequestFailed)
+		while (blockingRequestPending)// && !blockingRequestFailed)
 		{
 			if (timeOutMillis <= -1)
 			{
@@ -1070,7 +927,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 
 	private void processUpdate(UpdateMessage message)
 	{
-		//message.processUpdate(objectRegistry);
+		message.processUpdate(objectRegistry);
 		System.out.println("Should be doing a processUpdate but I don't know what function to call!!!");
 	}
 
@@ -1168,20 +1025,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 				// perform the service being requested
 				processResponse((ResponseMessage) actualRespose);
 				return actualRespose;
-                    ////really hope this does not break something
-				
-				/*
-				synchronized (unfulfilledRequests)
-				{
-					PreppedRequest finishedReq = unfulfilledRequests.remove(response.getUid());
 
-					if (finishedReq != null)
-					{ // subclasses might choose not to use unfulfilledRequests; this
-						// avoids problems with releasing resources;
-						// NOTE -- it may be necessary to release elsewhere in this case.
-						finishedReq = this.pRequestPool.release(finishedReq);
-					}
-				}*/
 			}
 			else if (actualRespose instanceof UpdateMessage)
 			{
@@ -1309,7 +1153,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	 * @return
 	 * @throws XMLTranslationException
 	 */
-	protected ServiceMessage translateJSONStringToServiceMessage(
+	public ServiceMessage translateJSONStringToServiceMessage(
 			String messageString) throws SIMPLTranslationException
 	{
 		System.out.println("Derp");
@@ -1368,6 +1212,8 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	{
 		//responseMessageToProcess.processResponse(objectRegistry);
 		System.out.println("Should be foing a processResponse but I'm not sure what function to call!!!");
+		
+		responseMessageToProcess.processResponse(objectRegistry);
 		
 	}
 
@@ -1698,14 +1544,28 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 			//this.responsePool.release(processString(firstMessageBuffer.toString(),
 				//	uidOfCurrentMessage));
 			processString(responseJSON);//not really using uid... hmmm...
-					
+			blockingRequestPending = false;
+			blockingResponsesQueue.clear();
+			debug("I something should be released here... ");
+			//this.responsePool.release();
 					//tbd lookup responsePool
 		}
 		else
 		{
-			ResponseMessage rma = (ResponseMessage)processString(responseJSON);
+			System.out.println("Making this response a thing..."+responseJSON);
 			
-			newBlockingResponsesQueue.add(rma);
+			ArrayList<ClassDescriptor> b = translationScope.getAllClassDescriptors();
+			for(int i=0; i<b.size(); i++)
+			{
+				System.out.println(b.get(i).getName());
+			}
+			
+			ResponseMessage rma = (ResponseMessage)processString(responseJSON);
+			if(newBlockingResponsesQueue == null)
+			    System.out.println("Awe crud it's null");
+			//newBlockingResponsesQueue.add(rma);
+			blockingRequestPending = false;
+			blockingResponsesQueue.clear();
 			synchronized (this)
 			{
 				notify();

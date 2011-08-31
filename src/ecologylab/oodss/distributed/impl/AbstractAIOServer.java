@@ -13,7 +13,6 @@ import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
-//import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
 /**
@@ -48,19 +47,9 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
-		//backend = this.generateBackend(portNumber, inetAddress, composeTranslations(portNumber,
-		//		inetAddress[0], requestTranslationSpace), objectRegistry, idleConnectionTimeout,
-		//		maxMessageLength);
-
 		debug("setting up NIO Server...");
-
-		// we get these from the backend, because it ensures that they are
-		// configured if they are passed in null
-		this.translationScope = translationScope;//backend.translationScope; //could break something... meh
-		this.applicationObjectScope = (S) objectRegistry;// backend.objectRegistry;
-
-		//this.applicationObjectScope.put(MAIN_START_AND_STOPPABLE, this);
-		//this.applicationObjectScope.put(MAIN_SHUTDOWNABLE, this);
+		this.translationScope = translationScope;
+		this.applicationObjectScope = (S) objectRegistry;
 	}
 
 	static final Class[]	OUR_TRANSLATIONS	=
@@ -101,15 +90,6 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 				objectRegistry, idleConnectionTimeout, maxMessageLength);
 	}
 
-	/*
-	protected AIOServerIOThread generateBackend(int portNumber, InetAddress[] inetAddresses,
-			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
-			int maxMessageLength) throws BindException, IOException
-	{
-		return AIOServerIOThread.getInstance(portNumber, inetAddresses, this, requestTranslationSpace,
-				objectRegistry, idleConnectionTimeout, maxMessageLength);
-	}*/
-
 	protected abstract WebSocketSessionManager generateContextManager(String sessionId, SelectionKey sk,
 			TranslationScope translationScope, Scope globalScope);
 
@@ -118,16 +98,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	 */
 	public void start()
 	{
-		//try
-		//{
-			//backend.openSelector();
-			//backend.registerAcceptWithSelector();
-			//backend.start();
-		//}
-		//catch (IOException e)
-		//{
-		//	e.printStackTrace();
-		//}
+
 	}
 
 	/**
@@ -138,13 +109,6 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 		//backend.stop();
 	}
 
-	/**
-	 * @return the backend
-	 */
-	//public AIOServerIOThread getBackend()
-	//{
-	//	return null;//backend;
-	//}
 
 	/**
 	 * @return the global scope for this server

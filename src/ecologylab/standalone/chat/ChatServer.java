@@ -1,4 +1,4 @@
-package ecologylab.standalone;
+package ecologylab.standalone.chat;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,22 +13,29 @@ import javax.swing.Timer;
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
 import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
-public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
+public class ChatServer extends DoubleThreadedAIOServer<Scope> {
+	
+	public static TranslationScope getTranslationScope()
+	{
+		TranslationScope ts = DefaultServicesTranslations.get();
+		ts.addTranslation(SendChatMessage.class);
+		ts.addTranslation(ChatUpdate.class);
+		return ts;
+	}
+	
 
 	Timer timer;
-	public NewExtendedServer(int portNumber,
-			InetAddress[] allInetAddressesForLocalhost,
-			TranslationScope requestTranslationScope,
+	public ChatServer(TranslationScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
 			int maxPacketSize) throws BindException, IOException {
-		// TODO Auto-generated constructor stub
-		super(requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);
-
+		//super(portNumber, allInetAddressesForLocalhost,requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);
+        super(requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);
 		timer = new Timer(100000, new ActionListener() {
 			
 			@Override
@@ -41,14 +48,14 @@ public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
 				Iterator contextIter = allSessions.values().iterator();
 
 				// process all of the messages in the queues
-				TestUpdateMessage testUpdateMessage = new TestUpdateMessage("Hey guys","friendly",501);
+				ChatUpdate testUpdateMessage = new ChatUpdate("Hey guys","friendly",501);
 			    
 				while (contextIter.hasNext())
 				{
 					WebSocketSessionManager clientSession = (WebSocketSessionManager) contextIter.next();
 				    //clientSession.sendUpdateToClient(testUpdateMessage);
 					System.out.println("Tag is:"+clientSession.getSessionId().toString());
-					sendUpdateMessage(clientSession.getSessionId().toString(),new TestUpdateMessage("You complete me.","Sarcastic",9001));
+					sendUpdateMessage(clientSession.getSessionId().toString(),new ChatUpdate("You complete me.","Sarcastic",9001));
 				}
 				
 			    printNumberOfConnectedClients();
@@ -57,21 +64,6 @@ public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
 		timer.start();
 	}
 
-	public static NewExtendedServer getInstance(int portNumber,
-			InetAddress[] allInetAddressesForLocalhost,
-			TranslationScope requestTranslationScope,
-			Scope applicationObjectScope, int idleConnectionTimeout,
-			int maxPacketSize) throws BindException, IOException {
-		// TODO Auto-generated method stub
-		
-		
-		return new NewExtendedServer(portNumber,
-				allInetAddressesForLocalhost,
-				requestTranslationScope,
-				applicationObjectScope,
-				idleConnectionTimeout,
-				maxPacketSize);
-	}
-
+	
 	
 }

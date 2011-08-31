@@ -44,7 +44,7 @@ public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
 			Scope applicationObjectScope, int idleConnectionTimeout,
 			int maxPacketSize) throws BindException, IOException {
 		// TODO Auto-generated constructor stub
-		super(portNumber, allInetAddressesForLocalhost,requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);
+		super(requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);
 
 		timer = new Timer(100000, new ActionListener() {
 			
