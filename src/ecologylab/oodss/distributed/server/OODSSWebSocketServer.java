@@ -511,7 +511,17 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 
 	@Override
 	public void putServerObject(Object o) {
-		// TODO Auto-generated method stub
 		webSocketServer = (WebSocketServer) o;
+	}
+
+	@Override
+	public void newClientAdded(String sessionId) {
+		WebSocketSessionManager theClientSessionManages = null;
+		if(!sessionForSessionIdMap.containsKey(sessionId))
+		{
+			theClientSessionManages = new WebSocketSessionManager(sessionId,
+					this.translationScope, this.applicationObjectScope );
+			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
+		}
 	}
 }

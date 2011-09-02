@@ -1524,11 +1524,17 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 	 */
 	private static boolean startsWith(String argument, String testAgainst)
 	{
-	   String compareTo = testAgainst.substring(0, Math.max(0, argument.length()));
-	   System.out.println("Compare the next two lines:");
-	   System.out.println(argument);
-	   System.out.println(compareTo);
-	   return argument.equals(compareTo);
+		try{
+	       String compareTo = testAgainst.substring(0, Math.max(0, argument.length()));
+	       System.out.println("Compare the next two lines:");
+	       System.out.println(argument);
+	       System.out.println(compareTo);
+	       return argument.equals(compareTo);
+		}
+		catch(Exception e)
+		{
+		   return false;
+		}
 	}
 	
 	boolean processedFirstMessage = false;
