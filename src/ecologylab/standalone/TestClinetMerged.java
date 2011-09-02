@@ -6,7 +6,7 @@ package ecologylab.standalone;
 import java.io.IOException;
 
 import ecologylab.collections.Scope;
-import ecologylab.oodss.distributed.client.AIOClient;
+import ecologylab.oodss.distributed.client.OODSSWebSocketClient;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.Ping;
@@ -33,7 +33,7 @@ public class TestClinetMerged implements TestUpdateMessageListener
 		 Scope scope = new Scope();
 		 myInstance = new TestClinetMerged();
 		 
-		 AIOClient c = new AIOClient("localhost", 7833,
+		 OODSSWebSocketClient c = new OODSSWebSocketClient("localhost", 7833,
 				ts, scope);
 		 scope.put(TestUpdateMessageListener.TEST_UPDATE_LISTENER, myInstance);
 		

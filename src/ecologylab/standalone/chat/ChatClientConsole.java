@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 import ecologylab.collections.Scope;
-import ecologylab.oodss.distributed.client.AIOClient;
+import ecologylab.oodss.distributed.client.OODSSWebSocketClient;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.Ping;
@@ -28,7 +28,7 @@ public class ChatClientConsole implements ChatUpdateListener
 	 */
 	public static void main(String[] args) throws IOException, MessageTooLargeException 
 	{
-		AIOClient c = new AIOClient("localhost", 7833,
+		OODSSWebSocketClient c = new OODSSWebSocketClient("localhost", 7833,
 				 ChatServer.getTranslationScope(), new Scope());
 		
 		c.isServerRunning();

@@ -16,7 +16,7 @@ import quiz.QuizGameServer;
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
 import ecologylab.net.NetTools;
-import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
@@ -38,7 +38,7 @@ public class TestServer
 	public static void main(String[] args) throws BindException, IOException
 	{
 		//JWebSocketServer.main(null);
-		DoubleThreadedAIOServer s = new DoubleThreadedAIOServer(
+		OODSSWebSocketServer s = new OODSSWebSocketServer(
 				DefaultServicesTranslations.get(), 
 				new Scope(), 
 				100000, 
@@ -49,10 +49,10 @@ public class TestServer
 		
 	}
 	
-	public static DoubleThreadedAIOServer getServer()
+	public static OODSSWebSocketServer getServer()
 	{
 		
-		DoubleThreadedAIOServer s = null;
+		OODSSWebSocketServer s = null;
 		try {
 			/*
 			s = NewExtendedServer.getInstance(

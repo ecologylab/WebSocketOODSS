@@ -5,7 +5,7 @@ import java.net.InetAddress;
 
 import ecologylab.collections.Scope;
 import ecologylab.net.NetTools;
-import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.serialization.TranslationScope;
 
@@ -41,7 +41,7 @@ public class PublicChatServer
 		 * connections.
 		 */
 
-		DoubleThreadedAIOServer historyServer = new DoubleThreadedAIOServer(publicChatTranslations,
+		OODSSWebSocketServer historyServer = new OODSSWebSocketServer(publicChatTranslations,
 						applicationScope, idleTimeout, MTU);
 		
 

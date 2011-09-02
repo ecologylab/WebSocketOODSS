@@ -12,13 +12,13 @@ import javax.swing.Timer;
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
-import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 
-public class NewExtendedServer extends DoubleThreadedAIOServer<Scope> {
+public class NewExtendedServer extends OODSSWebSocketServer<Scope> {
 
 	Timer timer;
 	public NewExtendedServer(int portNumber,

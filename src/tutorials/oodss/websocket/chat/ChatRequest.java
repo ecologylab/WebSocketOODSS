@@ -14,7 +14,7 @@ import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
  * Implements a message that will be sent to PublicChatServer to indicate that
  * this client is posting a message to the chat service.
  * 
- * @author bill
+ * @author bill, modified by rhema
  */
 public class ChatRequest extends RequestMessage
 {
@@ -54,17 +54,11 @@ public class ChatRequest extends RequestMessage
 		 * server
 		 */
 		HashMap<String, WebSocketSessionManager> sessionsMap = (HashMap<String, WebSocketSessionManager>)cSScope.get(SessionObjects.SESSIONS_MAP_BY_SESSION_ID);
-//		HashMap<Object, SessionHandle> sessionHandleMap = (HashMap<Object, SessionHandle>) cSScope
-//				.get(SessionObjects.SESSIONS_MAP);
-
-		/*
-		 * Get this client's SessionHandle
-		 */
-//		SessionHandle mySessionHandle = (SessionHandle) cSScope
-//				.get(SessionObjects.SESSION_HANDLE);
-
-		String sessionId = (String) cSScope.get(SessionObjects.SESSION_ID);
 		
+		/*
+		 * Get this client's sessionId
+		 */
+		String sessionId = (String) cSScope.get(SessionObjects.SESSION_ID);
 		/*
 		 * Form a update message to send out to all of the
 		 * other clients.
@@ -74,25 +68,15 @@ public class ChatRequest extends RequestMessage
 		/*
 		 * Loop through the other sessions.
 		 */
-//		for (SessionHandle otherClientHandle : sessionHandleMap.values())
-//		{
-			/*
-			 * If this isn't me then send them an update.
-			 */
-//			if (!mySessionHandle.equals(otherClientHandle))
-//			{
-//				otherClientHandle.sendUpdate(messageUpdate);
-//			}
-//		}
 		for (WebSocketSessionManager otherClient : sessionsMap.values())
 		{
 			/*
 			 * If this isn't me then send them an update.
 			 */
+			System.out.println(otherClient.getSessionId() + " checking to make sure not "+sessionId);
 			if (!otherClient.getSessionId().equals(sessionId))
 			{
-			    otherClient.sendUpdateToClient(messageUpdate);	
-				//otherClient.sendUpdateToClient(messageUpdate);
+			    otherClient.sendUpdateToClient(messageUpdate,otherClient.getSessionId());
 			}
 		}
 

@@ -20,7 +20,7 @@ import java.util.Iterator;
 import org.jwebsocket.api.WebSocketConnector;
 import org.jwebsocket.api.WebSocketServer;
 import org.jwebsocket.console.JWebSocketServerLight;
-import org.jwebsocket.console.MyListener;
+import org.jwebsocket.console.JWebSocketListenerBridge;
 import org.jwebsocket.kit.RawPacket;
 
 import ecologylab.collections.Scope;
@@ -56,7 +56,7 @@ import ecologylab.serialization.ElementState.FORMAT;
  * 
  * @author Zachary O. Toups (zach@ecologylab.net)
  */
-public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<S> implements
+public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> implements
 		ServerConstants, ServerMessages
 {		
 	
@@ -114,6 +114,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	    
 	    //
 	    //.sendPacket(updateMessagePacket);
+	    System.out.println("SendUpdateMessage was called...");
     }
 	
 	protected static InetAddress[] addressToAddresses(InetAddress address)
@@ -161,9 +162,9 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	protected StringBuilderPool																				stringBuilderPool;
 
 	
-	private static DoubleThreadedAIOServer serverInstance = null;
+	private static OODSSWebSocketServer serverInstance = null;
 	
-	public static DoubleThreadedAIOServer getInstance()
+	public static OODSSWebSocketServer getInstance()
 	{
 		if(serverInstance == null)
 		{
@@ -178,7 +179,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 	/**
 	 * 
 	 */
-	public DoubleThreadedAIOServer(TranslationScope requestTranslationScope, S applicationObjectScope,
+	public OODSSWebSocketServer(TranslationScope requestTranslationScope, S applicationObjectScope,
 			int idleConnectionTimeout, int maxMessageSize) throws IOException, BindException
 	{
 		super(0, InetAddress.getLocalHost(), requestTranslationScope, applicationObjectScope,
@@ -188,6 +189,7 @@ public class DoubleThreadedAIOServer<S extends Scope> extends AbstractAIOServer<
 		this.translationScope = requestTranslationScope;//gbgbgb
 
 		applicationObjectScope.put(SessionObjects.SESSIONS_MAP, clientSessionHandleMap);
+		applicationObjectScope.put(SessionObjects.OODSS_WEBSOCKET_SERVER, this);
 		
 
 		instantiateBufferPools(this.maxMessageSize);

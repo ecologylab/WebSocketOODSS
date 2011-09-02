@@ -9,6 +9,8 @@ import java.nio.channels.SelectionKey;
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.Debug;
+import ecologylab.oodss.distributed.common.SessionObjects;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.messages.BadSemanticContentResponse;
 import ecologylab.oodss.messages.InitConnectionRequest;
@@ -311,9 +313,15 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 		return invalidating;
 	}
 
-	public void sendUpdateToClient(UpdateMessage<?> update)
+	public void sendUpdateToClient(UpdateMessage<?> update, String receivingSessionId)
 	{
 		System.out.println("SEND UPDATE MESSAGE PLEASE BLAAAAAHHHH!!!!!!!");
+		OODSSWebSocketServer server =  (OODSSWebSocketServer) localScope.get(SessionObjects.OODSS_WEBSOCKET_SERVER);
+		server.sendUpdateMessage(receivingSessionId, update);
+		//RequestMessage rm =  (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);
+		//System.out.println(1.2);
+		//return rm;//deserializeCharSequence(messageCharSequence);
+	    //	this.
 	}
 	
 	/**

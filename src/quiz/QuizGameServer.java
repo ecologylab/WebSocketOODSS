@@ -13,14 +13,14 @@ import javax.swing.Timer;
 
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
-import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.TranslationScope;
 import ecologylab.standalone.TestUpdateMessage;
 
-public class QuizGameServer extends DoubleThreadedAIOServer<Scope> {
+public class QuizGameServer extends OODSSWebSocketServer<Scope> {
 
 	public static ArrayList<Player> players = new ArrayList<Player>();
 	//Small todo list:

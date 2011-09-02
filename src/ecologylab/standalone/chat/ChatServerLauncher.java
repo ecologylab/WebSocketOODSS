@@ -17,7 +17,7 @@ import quiz.QuizGameServer;
 import ecologylab.collections.Scope;
 import ecologylab.generic.HashMapArrayList;
 import ecologylab.net.NetTools;
-import ecologylab.oodss.distributed.server.DoubleThreadedAIOServer;
+import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
@@ -42,7 +42,7 @@ public class ChatServerLauncher
 		//JWebSocketServer.main(null);
 		TranslationScope ts = ChatServer.getTranslationScope();
 		
-		DoubleThreadedAIOServer s = new DoubleThreadedAIOServer(
+		OODSSWebSocketServer s = new OODSSWebSocketServer(
 				ts, 
 				new Scope(), 
 				100000, 
@@ -53,10 +53,10 @@ public class ChatServerLauncher
 		
 	}
 	
-	public static DoubleThreadedAIOServer getServer()
+	public static OODSSWebSocketServer getServer()
 	{
 		
-		DoubleThreadedAIOServer s = null;
+		OODSSWebSocketServer s = null;
 		try {
 			/*
 			s = NewExtendedServer.getInstance(

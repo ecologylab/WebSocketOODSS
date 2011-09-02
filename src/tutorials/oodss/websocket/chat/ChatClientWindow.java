@@ -16,7 +16,7 @@ import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
 import ecologylab.collections.Scope;
-import ecologylab.oodss.distributed.client.AIOClient;
+import ecologylab.oodss.distributed.client.OODSSWebSocketClient;
 import ecologylab.oodss.distributed.client.NIOClient;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
 import ecologylab.serialization.TranslationScope;
@@ -39,9 +39,9 @@ public class ChatClientWindow extends JFrame implements ChatUpdateListener,
 
 	private JTextField	entryField;
 
-	private AIOClient		client;
+	private OODSSWebSocketClient		client;
 
-	public ChatClientWindow(AIOClient client, Scope scope)
+	public ChatClientWindow(OODSSWebSocketClient client, Scope scope)
 	{
 		/*
 		 * Set the window as the listener for chat updates in the application
@@ -109,7 +109,7 @@ public class ChatClientWindow extends JFrame implements ChatUpdateListener,
 
 		Scope clientScope = new Scope();
 
-		AIOClient client = new AIOClient("",44,publicChatTranslations,clientScope);//"", portNumber,publicChatTranslations, clientScope);
+		OODSSWebSocketClient client = new OODSSWebSocketClient("",44,publicChatTranslations,clientScope);//"", portNumber,publicChatTranslations, clientScope);
 
 		/*
 		 * Enable compression and connect the client to the server.

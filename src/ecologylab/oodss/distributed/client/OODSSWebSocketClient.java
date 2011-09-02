@@ -81,7 +81,7 @@ import ecologylab.serialization.ElementState.FORMAT;
  * 
  * @author Zachary O. Dugas Toups (zach@ecologylab.net)
  */
-public class AIOClient<S extends Scope> extends Debug implements Runnable,
+public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runnable,
 		ClientConstants, WebSocketClientTokenListener
 {
 	protected String																									serverAddress;
@@ -228,7 +228,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	private List<ClientStatusListener>																clientStatusListeners					= null;
 	private TranslationScope translationScope;
 
-	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
+	public OODSSWebSocketClient(String serverAddress, int portNumber, TranslationScope messageSpace,
 			S objectRegistry, int maxMessageLengthChars) throws IOException
 	{
 		//super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
@@ -263,7 +263,7 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 		initializeWebSocketClient();//this is called before start()
 	}
 
-	public AIOClient(String serverAddress, int portNumber, TranslationScope messageSpace,
+	public OODSSWebSocketClient(String serverAddress, int portNumber, TranslationScope messageSpace,
 			S objectRegistry) throws IOException
 	{
 		this(serverAddress, portNumber, messageSpace, objectRegistry, DEFAULT_MAX_MESSAGE_LENGTH_CHARS);
@@ -1519,6 +1519,18 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 	}
 
 	
+	/*
+	 * returns true if argument is in the start of testAgainst
+	 */
+	private static boolean startsWith(String argument, String testAgainst)
+	{
+	   String compareTo = testAgainst.substring(0, Math.max(0, argument.length()));
+	   System.out.println("Compare the next two lines:");
+	   System.out.println(argument);
+	   System.out.println(compareTo);
+	   return argument.equals(compareTo);
+	}
+	
 	boolean processedFirstMessage = false;
 	@Override//can i add synchronized here?...
 	public void processPacket(WebSocketClientEvent aEvent,
@@ -1529,9 +1541,15 @@ public class AIOClient<S extends Scope> extends Debug implements Runnable,
 			processedFirstMessage = true;
 			return;
 		}
+		String newConnectedStart = "{\"name\":\"connect\"";
+		String newDisconnected ="{\"name\":\"disconnect\"";
 		// TODO Auto-generated method stub
 		System.out.println("TestWebSocketClient:processPacket+"+aPacket.getUTF8());
 		String responseJSON = aPacket.getUTF8();
+		
+		//this is a hack until I can dig into the code of jwebsocket enough to turn messages off or use them in different events
+		if(startsWith(newConnectedStart, responseJSON) || startsWith(newDisconnected,responseJSON))
+			return;
 		//turn it from json to response object...  WIN
 		//put in newBlockingResponsesQueue
 		
