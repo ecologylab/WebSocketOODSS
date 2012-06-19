@@ -6,6 +6,8 @@ import java.util.List;
 
 import ecologylab.helper.Helper;
 import ecologylab.serialization.SIMPLTranslationException;
+import ecologylab.serialization.SimplTypesScope;
+import ecologylab.serialization.formatenums.Format;
 
 public class CreateDataAndMakeJSON {
 
@@ -37,12 +39,13 @@ public class CreateDataAndMakeJSON {
 	    System.out.println("Bank");
 		System.out.println( Helper.ElementStateToJSON( new Bank(itemMap)));
 		try {
-			System.out.println( ( new Bank(itemMap)).serialize().toString() );
+			//System.out.println( ( new Bank(itemMap)).serialize().toString() );
+			SimplTypesScope.serialize( new Bank(itemMap), System.out, Format.JSON);
+			
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
 		
 	}
 }

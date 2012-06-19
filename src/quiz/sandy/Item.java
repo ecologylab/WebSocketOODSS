@@ -1,11 +1,10 @@
 package quiz.sandy;
 
 import ecologylab.serialization.ElementState;
-import ecologylab.serialization.ElementState.simpl_scalar;
-import ecologylab.serialization.ElementState.xml_tag;
-import ecologylab.serialization.types.element.Mappable;
+import ecologylab.serialization.annotations.*;
 
-public class Item extends ElementState implements Mappable{
+
+public class Item extends ElementState{
 	
 	@simpl_scalar float price;
 	@simpl_scalar String ownerName;
@@ -15,9 +14,5 @@ public class Item extends ElementState implements Mappable{
 		this.price = price;
 		this.ownerName = ownerName;
 		this.name = name;
-	}
-	@Override
-	public Object key() {
-		return ownerName;
 	}
 }

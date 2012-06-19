@@ -13,7 +13,7 @@ import ecologylab.net.NetTools;
 import ecologylab.oodss.distributed.common.SessionObjects;
 import ecologylab.oodss.messages.InitConnectionRequest;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 /**
  * Provides access to an NIOServerIOThread, which handles the details of network connections.
@@ -26,7 +26,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 {
 	//private AIOServerIOThread		backend;
 
-	protected TranslationScope	translationScope;
+	protected SimplTypesScope	translationScope;
 
 	protected S									applicationObjectScope;
 
@@ -44,7 +44,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	 * @throws BindException
 	 */
 	protected AbstractAIOServer(int portNumber, InetAddress[] inetAddress,
-			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
+			SimplTypesScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
 		debug("setting up NIO Server...");
@@ -55,17 +55,17 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	static final Class[]	OUR_TRANSLATIONS	=
 																					{ InitConnectionRequest.class, };
 
-	public static TranslationScope composeTranslations(int portNumber, InetAddress inetAddress,
-			TranslationScope requestTranslationSpace)
+	public static SimplTypesScope composeTranslations(int portNumber, InetAddress inetAddress,
+			SimplTypesScope requestTranslationSpace)
 	{
 		return composeTranslations(OUR_TRANSLATIONS, "nio_server_base: ", portNumber, inetAddress
 				.toString(), requestTranslationSpace);
 	}
 
-	public static TranslationScope composeTranslations(Class[] newTranslations, String prefix,
-			int portNumber, String inetAddress, TranslationScope requestTranslationSpace)
+	public static SimplTypesScope composeTranslations(Class[] newTranslations, String prefix,
+			int portNumber, String inetAddress, SimplTypesScope requestTranslationSpace)
 	{
-		return TranslationScope.get(prefix + inetAddress.toString() + ":" + portNumber,
+		return SimplTypesScope.get(prefix + inetAddress.toString() + ":" + portNumber,
 				requestTranslationSpace, newTranslations);
 	}
 
@@ -83,7 +83,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	 * @throws BindException
 	 */
 	protected AbstractAIOServer(int portNumber, InetAddress inetAddress,
-			TranslationScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
+			SimplTypesScope requestTranslationSpace, S objectRegistry, int idleConnectionTimeout,
 			int maxMessageLength) throws IOException, BindException
 	{
 		this(portNumber, NetTools.wrapSingleAddress(inetAddress), requestTranslationSpace,
@@ -91,7 +91,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	}
 
 	protected abstract WebSocketSessionManager generateContextManager(String sessionId, SelectionKey sk,
-			TranslationScope translationScope, Scope globalScope);
+			SimplTypesScope translationScope, Scope globalScope);
 
 	/**
 	 * @see ecologylab.generic.StartAndStoppable#start()
@@ -121,7 +121,7 @@ public abstract class AbstractAIOServer<S extends Scope> extends Manager impleme
 	/**
 	 * @return the translationScope
 	 */
-	public TranslationScope getTranslationSpace()
+	public SimplTypesScope getTranslationSpace()
 	{
 		return translationScope;
 	}

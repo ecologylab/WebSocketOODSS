@@ -23,7 +23,7 @@ import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
 import ecologylab.serialization.ElementState;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 /**
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
@@ -40,7 +40,7 @@ public class ChatServerLauncher
 	public static void main(String[] args) throws BindException, IOException
 	{
 		//JWebSocketServer.main(null);
-		TranslationScope ts = ChatServer.getTranslationScope();
+		SimplTypesScope ts = ChatServer.getTranslationScope();
 		
 		OODSSWebSocketServer s = new OODSSWebSocketServer(
 				ts, 
@@ -67,7 +67,7 @@ public class ChatServerLauncher
 					100000, 
 					100000);
 					*/
-			TranslationScope ts = DefaultServicesTranslations.get();
+			SimplTypesScope ts = DefaultServicesTranslations.get();
 			ts.addTranslation(JoinGameRequest.class);
 			s = QuizGameServer.getInstance(
 					7833, 

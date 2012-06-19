@@ -62,9 +62,11 @@ import ecologylab.oodss.messages.SendableRequest;
 import ecologylab.oodss.messages.ServiceMessage;
 import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.serialization.ClassDescriptor;
+import ecologylab.serialization.FieldDescriptor;
 import ecologylab.serialization.SIMPLTranslationException;
-import ecologylab.serialization.TranslationScope;
-import ecologylab.serialization.ElementState.FORMAT;
+import ecologylab.serialization.SimplTypesScope;
+import ecologylab.serialization.formatenums.Format;
+import ecologylab.serialization.formatenums.StringFormat;
 
 /**
  * Services Client using NIO; a major difference with the NIO version is state tracking. Since the
@@ -226,9 +228,9 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 	private ByteBuffer																								compressedMessageBuffer;
 
 	private List<ClientStatusListener>																clientStatusListeners					= null;
-	private TranslationScope translationScope;
+	private SimplTypesScope translationScope;
 
-	public OODSSWebSocketClient(String serverAddress, int portNumber, TranslationScope messageSpace,
+	public OODSSWebSocketClient(String serverAddress, int portNumber, SimplTypesScope messageSpace,
 			S objectRegistry, int maxMessageLengthChars) throws IOException
 	{
 		//super("AIOClient", portNumber, messageSpace, objectRegistry, maxMessageLengthChars);
@@ -263,7 +265,7 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 		initializeWebSocketClient();//this is called before start()
 	}
 
-	public OODSSWebSocketClient(String serverAddress, int portNumber, TranslationScope messageSpace,
+	public OODSSWebSocketClient(String serverAddress, int portNumber, SimplTypesScope messageSpace,
 			S objectRegistry) throws IOException
 	{
 		this(serverAddress, portNumber, messageSpace, objectRegistry, DEFAULT_MAX_MESSAGE_LENGTH_CHARS);
@@ -314,7 +316,8 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 		synchronized (requestBuffer)
 		{
 			// fill requestBuffer
-			request.serialize(requestBuffer);
+			//request.serialize(requestBuffer);
+			SimplTypesScope.serialize(request,requestBuffer, StringFormat.JSON);
 
 			// TODO not convinced this is the most efficient workflow. Why do we need requestBuffer at all??? -ZODT
 			// drain requestBuffer and fill a prepped request
@@ -547,7 +550,9 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 		try {
 			
-			requestMessage.serialize(outStream, FORMAT.JSON);
+			//requestMessage.serialize(outStream, FORMAT.JSON);
+			//translationScope.serialize( request,requestBuffer, StringFormat.JSON);
+			translationScope.serialize(request, outStream, Format.JSON);
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1159,8 +1164,8 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 		System.out.println("Derp");
 		System.out.println("Service message is:"+messageString);
 		
-		ServiceMessage resp = (ServiceMessage) this.translationScope
-				.deserializeCharSequence(messageString,FORMAT.JSON);
+		//ServiceMessage resp = (ServiceMessage) this.translationScope.deserializeCharSequence(messageString,FORMAT.JSON);
+		ServiceMessage resp = (ServiceMessage) translationScope.deserialize (messageString, StringFormat.JSON);
 
 		if (resp == null)
 		{
@@ -1186,8 +1191,8 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 	protected MessageWithMetadata<ServiceMessage, Object> translateXMLStringToServiceMessage(
 			String messageString, int incomingUid) throws SIMPLTranslationException
 	{
-		ServiceMessage resp = (ServiceMessage) this.translationScope
-				.deserializeCharSequence(messageString);
+		//ServiceMessage resp = (ServiceMessage) this.translationScope.deserializeCharSequence(messageString);
+		ServiceMessage resp = (ServiceMessage) translationScope.deserialize (messageString, StringFormat.JSON);
 
 		if (resp == null)
 		{
@@ -1578,7 +1583,7 @@ public class OODSSWebSocketClient<S extends Scope> extends Debug implements Runn
 		{
 			System.out.println("Making this response a thing..."+responseJSON);
 			
-			ArrayList<ClassDescriptor> b = translationScope.getAllClassDescriptors();
+			ArrayList<ClassDescriptor<? extends FieldDescriptor>> b = translationScope.getAllClassDescriptors(); //getAllClassDescriptors();
 			for(int i=0; i<b.size(); i++)
 			{
 				System.out.println(b.get(i).getName());

@@ -3,6 +3,7 @@ package quiz;
 import java.util.ArrayList;
 
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.annotations.simpl_collection;
 
 public class PlayersAndScoresUpdateMessage extends UpdateMessage {
 	

@@ -11,7 +11,7 @@ import ecologylab.oodss.distributed.exception.MessageTooLargeException;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.Ping;
 import ecologylab.oodss.messages.PingRequest;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 /**
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
@@ -28,7 +28,7 @@ public class TestClinetMerged implements TestUpdateMessageListener
 	 */
 	public static void main(String[] args) throws IOException, MessageTooLargeException
 	{
-		 TranslationScope ts = DefaultServicesTranslations.get();
+		 SimplTypesScope ts = DefaultServicesTranslations.get();
 		 ts.addTranslation(TestUpdateMessage.class);
 		 Scope scope = new Scope();
 		 myInstance = new TestClinetMerged();

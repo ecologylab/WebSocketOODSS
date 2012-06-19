@@ -21,7 +21,7 @@ import ecologylab.oodss.distributed.server.DoubleThreadedNIOServer;
 import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.messages.UpdateMessage;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 /**
  * @author Zachary O. Toups (toupsz@cs.tamu.edu)
@@ -63,7 +63,7 @@ public class TestServer
 					100000, 
 					100000);
 					*/
-			TranslationScope ts = DefaultServicesTranslations.get();
+			SimplTypesScope ts = DefaultServicesTranslations.get();
 			ts.addTranslation(JoinGameRequest.class);
 			s = QuizGameServer.getInstance(
 					7833, 

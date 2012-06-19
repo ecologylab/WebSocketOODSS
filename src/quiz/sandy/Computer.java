@@ -1,7 +1,7 @@
 package quiz.sandy;
 
-import ecologylab.serialization.simpl_inherit;
-import ecologylab.serialization.ElementState.simpl_scalar;
+import ecologylab.serialization.annotations.*;
+
 
 public @simpl_inherit class Computer extends Player {
 	@simpl_scalar float difficulty;

@@ -12,7 +12,9 @@ import org.jwebsocket.token.Token;
 
 import ecologylab.oodss.messages.PingRequest;
 import ecologylab.serialization.SIMPLTranslationException;
-import ecologylab.serialization.ElementState.FORMAT;
+import ecologylab.serialization.SimplTypesScope;
+import ecologylab.serialization.formatenums.Format;
+import ecologylab.serialization.formatenums.StringFormat;
 
 public class TestWebSocketClient implements WebSocketClientTokenListener{
 
@@ -43,7 +45,9 @@ public class TestWebSocketClient implements WebSocketClientTokenListener{
 				
 				ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 				try {
-					p.serialize(outStream, FORMAT.JSON);
+					//p.serialize(outStream, FORMAT.JSON);
+					SimplTypesScope.serialize(p, outStream, Format.JSON);
+					
 				} catch (SIMPLTranslationException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

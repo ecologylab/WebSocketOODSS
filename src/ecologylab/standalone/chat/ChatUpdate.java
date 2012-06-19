@@ -3,6 +3,7 @@ package ecologylab.standalone.chat;
 import ecologylab.collections.Scope;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.annotations.simpl_scalar;
 
 
 public class ChatUpdate extends UpdateMessage{

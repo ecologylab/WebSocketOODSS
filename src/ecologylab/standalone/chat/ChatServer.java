@@ -17,13 +17,13 @@ import ecologylab.oodss.messages.DefaultServicesTranslations;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 public class ChatServer extends OODSSWebSocketServer<Scope> {
 	
-	public static TranslationScope getTranslationScope()
+	public static SimplTypesScope getTranslationScope()
 	{
-		TranslationScope ts = DefaultServicesTranslations.get();
+		SimplTypesScope ts = DefaultServicesTranslations.get();
 		ts.addTranslation(SendChatMessage.class);
 		ts.addTranslation(ChatUpdate.class);
 		return ts;
@@ -31,7 +31,7 @@ public class ChatServer extends OODSSWebSocketServer<Scope> {
 	
 
 	Timer timer;
-	public ChatServer(TranslationScope requestTranslationScope,
+	public ChatServer(SimplTypesScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
 			int maxPacketSize) throws BindException, IOException {
 		//super(portNumber, allInetAddressesForLocalhost,requestTranslationScope,applicationObjectScope,idleConnectionTimeout,maxPacketSize);

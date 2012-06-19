@@ -3,6 +3,7 @@ package ecologylab.standalone;
 import ecologylab.collections.Scope;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 import ecologylab.oodss.messages.UpdateMessage;
+import ecologylab.serialization.annotations.simpl_scalar;
 
 
 public class TestUpdateMessage extends UpdateMessage{

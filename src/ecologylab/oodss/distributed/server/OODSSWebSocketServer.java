@@ -42,9 +42,9 @@ import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 import ecologylab.oodss.distributed.server.clientsessionmanager.SessionHandle;
 //import ecologylab.oodss.server.clientsessionmanager.NewBaseSessionManager;
 import ecologylab.serialization.SIMPLTranslationException;
-import ecologylab.serialization.TranslationScope;
-import ecologylab.serialization.ElementState.FORMAT;
-
+import ecologylab.serialization.SimplTypesScope;
+import ecologylab.serialization.formatenums.Format;
+import ecologylab.serialization.formatenums.StringFormat;
 /**
  * A server that uses NIO and two threads (one for handling IO, the other for handling interfacing
  * with messages).
@@ -88,7 +88,7 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
     	
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 		try {
-			updateMessage.serialize(outStream, FORMAT.JSON);
+			translationScope.serialize(updateMessage, outStream, Format.JSON);
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -179,7 +179,7 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 	/**
 	 * 
 	 */
-	public OODSSWebSocketServer(TranslationScope requestTranslationScope, S applicationObjectScope,
+	public OODSSWebSocketServer(SimplTypesScope requestTranslationScope, S applicationObjectScope,
 			int idleConnectionTimeout, int maxMessageSize) throws IOException, BindException
 	{
 		super(0, InetAddress.getLocalHost(), requestTranslationScope, applicationObjectScope,
@@ -187,6 +187,7 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 
 		this.maxMessageSize = maxMessageSize + MAX_HTTP_HEADER_LENGTH;
 		this.translationScope = requestTranslationScope;//gbgbgb
+		
 
 		applicationObjectScope.put(SessionObjects.SESSIONS_MAP, clientSessionHandleMap);
 		applicationObjectScope.put(SessionObjects.OODSS_WEBSOCKET_SERVER, this);
@@ -266,7 +267,9 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 		
 		ByteArrayOutputStream outStream = new ByteArrayOutputStream();
 		try {
-			response.serialize(outStream, FORMAT.JSON);
+			//response.serialize(outStream, FORMAT.JSON);
+			translationScope.serialize(response, outStream , Format.JSON);
+			//translationScope.serialize(response, stringFormat);
 		} catch (SIMPLTranslationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -334,7 +337,7 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 	 */
 	@Override
 	protected WebSocketSessionManager generateContextManager(String sessionId, SelectionKey sk,
-			TranslationScope translationScopeIn, Scope registryIn)
+			SimplTypesScope translationScopeIn, Scope registryIn)
 	{
 		return new WebSocketSessionManager(sessionId,translationScopeIn,registryIn);
 				
@@ -516,12 +519,8 @@ public class OODSSWebSocketServer<S extends Scope> extends AbstractAIOServer<S> 
 
 	@Override
 	public void newClientAdded(String sessionId) {
-		WebSocketSessionManager theClientSessionManages = null;
-		if(!sessionForSessionIdMap.containsKey(sessionId))
-		{
-			theClientSessionManages = new WebSocketSessionManager(sessionId,
-					this.translationScope, this.applicationObjectScope );
-			sessionForSessionIdMap.put(sessionId, theClientSessionManages);
-		}
+		// TODO Auto-generated method stub
+		
 	}
+
 }

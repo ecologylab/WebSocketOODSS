@@ -9,6 +9,7 @@ import ecologylab.oodss.messages.OkResponse;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
+import ecologylab.serialization.annotations.simpl_scalar;
 
 /**
  * Implements a message that will be sent to PublicChatServer to indicate that

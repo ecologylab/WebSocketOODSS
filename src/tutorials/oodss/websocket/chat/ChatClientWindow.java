@@ -19,7 +19,7 @@ import ecologylab.collections.Scope;
 import ecologylab.oodss.distributed.client.OODSSWebSocketClient;
 import ecologylab.oodss.distributed.client.NIOClient;
 import ecologylab.oodss.distributed.exception.MessageTooLargeException;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 
 /**
  * ChatClientWindow implements a basic chat client. Attaches to
@@ -105,7 +105,7 @@ public class ChatClientWindow extends JFrame implements ChatUpdateListener,
 		/*
 		 * Get chat translations with static accessor
 		 */
-		TranslationScope publicChatTranslations = ChatTranslations.get();
+		SimplTypesScope publicChatTranslations = ChatTranslations.get();
 
 		Scope clientScope = new Scope();
 

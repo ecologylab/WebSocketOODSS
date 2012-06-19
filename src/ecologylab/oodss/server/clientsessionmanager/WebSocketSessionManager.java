@@ -19,8 +19,9 @@ import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.messages.UpdateMessage;
 import ecologylab.serialization.SIMPLTranslationException;
-import ecologylab.serialization.TranslationScope;
-import ecologylab.serialization.ElementState.FORMAT;
+import ecologylab.serialization.SimplTypesScope;
+import ecologylab.serialization.formatenums.Format;
+import ecologylab.serialization.formatenums.StringFormat;
 
 /**
  * @author Zachary O. Toups (zach@ecologylab.net)
@@ -71,7 +72,7 @@ public class WebSocketSessionManager<S extends Scope> extends Debug
 	 */
 	private boolean								invalidating		= false;
 
-	private TranslationScope translationScope;
+	private SimplTypesScope translationScope;
 
 	public static final String		SESSION_ID			= "SESSION_ID";
 
@@ -94,7 +95,7 @@ public class WebSocketSessionManager<S extends Scope> extends Debug
 		this.localScope.put(CLIENT_MANAGER, this);
 	}
 
-	public WebSocketSessionManager(String sessionId2, TranslationScope translationScope,
+	public WebSocketSessionManager(String sessionId2, SimplTypesScope translationScope,
 			S applicationObjectScope) {
 		this.sessionId = sessionId2;
 		this.localScope = applicationObjectScope;
@@ -352,7 +353,8 @@ protected ResponseMessage performService(RequestMessage requestMessage)
 	throws SIMPLTranslationException
 	{
 		System.out.println(1.1);
-		RequestMessage rm =  (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, FORMAT.JSON);
+		//RequestMessage rm =  (RequestMessage) translationScope.deserializeCharSequence(messageCharSequence, Format.JSON);
+		RequestMessage rm =  (RequestMessage) translationScope.deserialize(messageCharSequence, StringFormat.JSON);
 		System.out.println(1.2);
 		return rm;//deserializeCharSequence(messageCharSequence);	
 	}

@@ -1,7 +1,7 @@
 package quiz.sandy;
 
 import ecologylab.serialization.ElementState;
-import ecologylab.serialization.ElementState.simpl_scalar;
+import ecologylab.serialization.annotations.*;
 
 public class Move extends ElementState{
 	@simpl_scalar float x;

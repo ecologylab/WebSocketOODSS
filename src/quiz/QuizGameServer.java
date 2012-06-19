@@ -17,7 +17,7 @@ import ecologylab.oodss.distributed.server.OODSSWebSocketServer;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewClientSessionManager;
 //import ecologylab.oodss.server.clientsessionmanager.NewTCPClientSessionManager;
-import ecologylab.serialization.TranslationScope;
+import ecologylab.serialization.SimplTypesScope;
 import ecologylab.standalone.TestUpdateMessage;
 
 public class QuizGameServer extends OODSSWebSocketServer<Scope> {
@@ -40,7 +40,7 @@ public class QuizGameServer extends OODSSWebSocketServer<Scope> {
 	Timer timer;
 	public QuizGameServer(int portNumber,
 			InetAddress[] allInetAddressesForLocalhost,
-			TranslationScope requestTranslationScope,
+			SimplTypesScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
 			int maxPacketSize) throws BindException, IOException {
 		// TODO Auto-generated constructor stub
@@ -88,7 +88,7 @@ public class QuizGameServer extends OODSSWebSocketServer<Scope> {
 
 	public static QuizGameServer getInstance(int portNumber,
 			InetAddress[] allInetAddressesForLocalhost,
-			TranslationScope requestTranslationScope,
+			SimplTypesScope requestTranslationScope,
 			Scope applicationObjectScope, int idleConnectionTimeout,
 			int maxPacketSize) throws BindException, IOException {
 		// TODO Auto-generated method stub

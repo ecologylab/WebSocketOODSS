@@ -8,6 +8,7 @@ import ecologylab.oodss.messages.OkResponse;
 import ecologylab.oodss.messages.RequestMessage;
 import ecologylab.oodss.messages.ResponseMessage;
 import ecologylab.oodss.server.clientsessionmanager.WebSocketSessionManager;
+import ecologylab.serialization.annotations.simpl_scalar;
 import ecologylab.standalone.TestUpdateMessage;
 
 
@@ -47,15 +48,8 @@ public class SendChatMessage extends RequestMessage{
 		this.message = message;
 	}
 
-
-
 	@simpl_scalar String name;
 	@simpl_scalar String message;
-	
-	
-
-	
-	
 	
 	@Override
 	public ResponseMessage performService(Scope clientSessionScope) {

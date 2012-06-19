@@ -1,7 +1,5 @@
 package quiz.sandy;
-
-import ecologylab.serialization.simpl_inherit;
-import ecologylab.serialization.ElementState.simpl_scalar;
+import ecologylab.serialization.annotations.*;
 
 @simpl_inherit
 public class Human extends Player {
